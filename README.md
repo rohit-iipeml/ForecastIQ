@@ -181,5 +181,4 @@ git push -u origin main
 
 - Keep raw data and generated run artifacts local unless you explicitly want versioned snapshots.
 
-## License
-Add your preferred license file (MIT/Apache-2.0/etc.) before public release.
+
