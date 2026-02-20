@@ -179,8 +179,6 @@ git remote add origin <YOUR_GITHUB_REPO_URL>
 git push -u origin main
 ```
 
-## Notes on Data and Outputs
-- `data/` and `outputs/` are gitignored by default in this setup.
 - Keep raw data and generated run artifacts local unless you explicitly want versioned snapshots.
 
 ## License
