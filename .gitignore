@@ -1,0 +1,35 @@
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Streamlit runtime
+.streamlit/secrets.toml
+
+# Local outputs and large generated artifacts
+outputs/
+
+# Large local datasets (keep local; do not commit by default)
+data/
+
+# Build / packaging
+dist/
+build/
+*.egg-info/

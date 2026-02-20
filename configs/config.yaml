@@ -1,0 +1,20 @@
+mode: "00"
+
+paths:
+  history_00: "data/data_history.csv"
+  history_12: "data/data_history12.csv"
+  load_daily_dir: "data/daily_load"
+  weather_dir_00: "data/weather_daily"
+  weather_dir_12: "data/weather_daily_12"
+  outputs_dir: "outputs"
+  runs_dir: "outputs/runs"
+
+variables_to_plot:
+  - "T2m"
+  - "Td2m"
+  - "RH2m"
+  - "GH500"
+
+horizon_hours: 90
+allowed_date_min: "2025-01-01"
+allowed_date_max: "2025-01-31"
