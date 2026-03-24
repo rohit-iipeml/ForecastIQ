@@ -7,6 +7,8 @@ from typing import Any
 
 import pandas as pd
 
+from src.phase3.policy import classify_backtest_quality, compute_energy_at_risk, compute_ramp_risk
+
 
 RUNS_ROOT = Path("outputs/runs")
 
@@ -126,6 +128,22 @@ def build_phase3_input(run_id: str) -> dict[str, Any]:
     else:
         peak = {"time": metrics.get("max_predicted_load_ts"), "value_mw": float(metrics.get("max_predicted_load_mw", 0.0))}
 
+    # --- New analytics ---
+    avg_load_mw = float(metrics.get("avg_predicted_load_mw", 0.0)) or None
+    capacity_mw_val = float(metrics.get("capacity_mw", 0.0))
+
+    # Ramp risk: use forecast_points if available, else fallback to empty
+    ramp_risk_data = compute_ramp_risk(forecast_points, avg_load_mw)
+    energy_at_risk_data = compute_energy_at_risk(forecast_points, capacity_mw_val)
+
+    # Backtest quality: use yesterday performance from metrics.json
+    yp = metrics.get("yesterday_performance") or {}
+    backtest_mae = yp.get("mae_mw")
+    backtest_quality_data = classify_backtest_quality(
+        float(backtest_mae) if backtest_mae is not None else None,
+        avg_load_mw,
+    )
+
     top_unstable = []
     if per_hour is not None and not per_hour.empty:
         temp = per_hour.copy()
@@ -238,6 +256,9 @@ def build_phase3_input(run_id: str) -> dict[str, Any]:
             "hours_above_capacity": int(metrics.get("hours_above_capacity", 0)),
             "max_exceedance_mw": float(metrics.get("max_exceedance_mw", 0.0)),
             "top_load_hours": top_load_hours,
+            "ramp_risk": ramp_risk_data,
+            "energy_at_risk": energy_at_risk_data,
+            "backtest_quality": backtest_quality_data,
         },
         "phase2": {
             "disagreement_index": (p2_summary.get("day_metrics") or {}).get("disagreement_index_day"),
@@ -259,6 +280,9 @@ def build_phase3_input(run_id: str) -> dict[str, Any]:
             "weather_disagreement": weather_disagreement,
             "attribution": {
                 "r2": attribution_fit.get("r2"),
+                "n_samples": attribution_fit.get("n_samples"),
+                "r2_reliable": attribution_fit.get("r2_reliable"),
+                "r2_note": attribution_fit.get("r2_note"),
                 "vars_used": attribution_fit.get("vars_used", []),
                 "top_driver_var": top_driver_var,
                 "top_driver_corr": top_driver_corr,

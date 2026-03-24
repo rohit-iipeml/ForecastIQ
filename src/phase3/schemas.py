@@ -23,7 +23,7 @@ BRIEFING_SCHEMA: dict[str, Any] = {
     },
     "enum": {
         "risk_level": {"LOW", "MEDIUM", "HIGH", "SEVERE"},
-        "forecast_stability_level": {"STABLE", "MODERATE", "UNSTABLE", "HIGHLY_UNSTABLE"},
+        "forecast_stability_level": {"STABLE", "MODERATE", "UNSTABLE", "HIGHLY_UNSTABLE", "UNKNOWN"},
         "peak_timing_agreement": {"STRONG", "OK", "WEAK", "UNKNOWN"},
         "confidence_grade": {"A", "B", "C", "D"},
     },
@@ -51,7 +51,7 @@ def validate_briefing_json(payload: dict[str, Any]) -> None:
     if payload["risk_level"] not in BRIEFING_SCHEMA["enum"]["risk_level"]:
         raise ValueError("briefing.json: risk_level must be LOW/MEDIUM/HIGH/SEVERE")
     if payload["forecast_stability_level"] not in BRIEFING_SCHEMA["enum"]["forecast_stability_level"]:
-        raise ValueError("briefing.json: forecast_stability_level must be STABLE/MODERATE/UNSTABLE/HIGHLY_UNSTABLE")
+        raise ValueError("briefing.json: forecast_stability_level must be STABLE/MODERATE/UNSTABLE/HIGHLY_UNSTABLE/UNKNOWN")
     if payload["peak_timing_agreement"] not in BRIEFING_SCHEMA["enum"]["peak_timing_agreement"]:
         raise ValueError("briefing.json: peak_timing_agreement must be STRONG/OK/WEAK/UNKNOWN")
     if payload["confidence_grade"] not in BRIEFING_SCHEMA["enum"]["confidence_grade"]:

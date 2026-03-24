@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import hashlib
 import json
 import re
@@ -7,13 +8,23 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from src.llm.client import llm_generate_text
+from dotenv import load_dotenv
+from groq import Groq
 from src.phase4.generator import RUNS_ROOT, get_or_build_phase4
 from src.phase4.planner import plan_tools
 from src.phase4.tools import ToolResult, execute_tool
 
 
 NOT_AVAILABLE = "That information is not available in the saved forecast data for this run."
+CHAT_SYSTEM_PROMPT = (
+    "You are a helpful forecast analyst assistant for a power grid operations team.\n"
+    "You explain load forecast results in plain, clear English — like a knowledgeable colleague.\n"
+    "Your audience includes both technical operators and non-technical managers.\n"
+    "Use short sentences. Be direct. Answer the actual question first, then add context.\n"
+    "Use only the evidence provided below. Do not invent any numbers or metrics.\n"
+    "If something is not in the evidence, say: \"I don't have that detail in the saved data for this run.\"\n"
+    "Do not end every response with a robotic Sources list unless the user asks where data came from."
+)
 
 
 def _extract_numeric_tokens(text: str) -> set[str]:
@@ -46,42 +57,79 @@ def _result_sources(tool_results: list[ToolResult]) -> list[dict[str, Any]]:
     return out
 
 
-def _evidence_bundle(
+def _build_readable_context(
     facts_pack: dict[str, Any],
-    facts_path: str,
-    question: str,
-    plan: list[dict[str, Any]],
-    tool_results: list[ToolResult],
-) -> tuple[str, str]:
-    tool_summaries = []
-    for tr in tool_results:
-        tool_summaries.append(
-            {
-                "tool_name": tr.tool_name,
-                "summary": tr.summary,
-                "preview_markdown": tr.preview_markdown,
-                "errors": tr.errors,
-                "created_paths": tr.created_paths,
-            }
-        )
+    tool_summaries: dict[str, Any] | None,
+    run_id: str,
+) -> str:
+    """Convert facts_pack and tool outputs into plain English context."""
+    fp = facts_pack or {}
+    lines: list[str] = []
+    peak = fp.get("peak", {}) or {}
+    cap = fp.get("capacity", {}) or {}
+    weather = fp.get("weather", {}) or {}
 
-    evidence_json = {
-        "question": question,
-        "facts_pack_path": facts_path,
-        "facts_pack": facts_pack,
-        "plan": plan,
-        "tool_outputs": tool_summaries,
-    }
-    allowed_text = json.dumps(evidence_json, ensure_ascii=False)
-    prompt = (
-        "Answer the user question using ONLY the evidence below.\n"
-        "Do not invent metrics or numbers.\n"
-        "If evidence is missing, answer exactly: 'That information is not available in the saved forecast data for this run.'\n"
-        "Use plain, concise language.\n"
-        "End with section header 'Sources' and bullet list of source paths/fields used.\n\n"
-        f"Evidence:\n{json.dumps(evidence_json, ensure_ascii=False)}\n"
+    lines.append(f"RUN: {run_id}")
+    lines.append(f"Risk Level: {fp.get('risk_level', 'N/A')}")
+    lines.append(f"Forecast Stability: {fp.get('stability_label', fp.get('forecast_stability_level', 'N/A'))}")
+    lines.append(f"Peak Load: {fp.get('peak_mw', peak.get('value_mw', 'N/A'))} MW at {fp.get('peak_time', peak.get('time', 'N/A'))}")
+    lines.append(f"Grid Capacity: {fp.get('capacity_mw', peak.get('capacity_mw', 'N/A'))} MW")
+    lines.append(f"Hours Above Capacity: {fp.get('exceedance_hours', cap.get('hours_above_capacity', 'N/A'))}")
+    lines.append(f"Max Exceedance: {fp.get('max_exceedance_mw', peak.get('max_exceedance_mw', 'N/A'))} MW")
+    lines.append(f"Weather Attribution R²: {fp.get('attribution_r2', weather.get('attribution_r2', 'N/A'))}")
+
+    cap_watch = fp.get("capacity_watchlist", fp.get("capacity_watchlist_hours", [])) or []
+    if cap_watch:
+        lines.append("\nTop capacity risk hours:")
+        for h in cap_watch[:3]:
+            lines.append(
+                f"  - {h.get('time','?')}: "
+                f"{h.get('expected_mw', h.get('expected_load_mw', '?'))} MW, "
+                f"exceedance {h.get('exceedance_mw','?')} MW"
+            )
+
+    stab_watch = fp.get("stability_watchlist", fp.get("stability_watchlist_hours", [])) or []
+    if stab_watch:
+        lines.append("\nTop stability risk hours (most likely to shift):")
+        for h in stab_watch[:3]:
+            lines.append(
+                f"  - {h.get('time','?')}: "
+                f"{h.get('expected_mw', h.get('expected_load_mw', '?'))} MW, "
+                f"volatility {h.get('volatility_mw','?')} MW"
+            )
+
+    for tool_name, tool_out in (tool_summaries or {}).items():
+        if tool_out:
+            lines.append(f"\nTool result ({tool_name}): {str(tool_out)[:300]}")
+
+    return "\n".join(lines)
+
+
+def _build_prompt(context_text: str, question: str) -> str:
+    return (
+        f"Forecast data for this run:\n{context_text}\n\n"
+        f"User question: {question}\n\n"
+        "Answer the question directly in plain English. "
+        "Be concise. Use only the data above."
     )
-    return prompt, allowed_text
+
+
+def _generate_with_messages(messages: list[dict[str, str]], temperature: float) -> str:
+    load_dotenv()
+    key = os.getenv("GROQ_API_KEY", "api_key")
+    if not key or key.strip() in {"", "api_key"}:
+        raise RuntimeError("GROQ_API_KEY missing or still placeholder. Update .env with your real key.")
+    client = Groq(api_key=key)
+    resp = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=messages,
+        temperature=temperature,
+        max_completion_tokens=1000,
+    )
+    text = (resp.choices[0].message.content or "").strip()
+    if not text:
+        raise RuntimeError("Groq returned empty response text.")
+    return text
 
 
 def _deterministic_fallback(question: str, plan: list[dict[str, Any]], facts: dict[str, Any], tool_results: list[ToolResult]) -> str:
@@ -134,10 +182,14 @@ def _write_chat_log(run_id: str, payload: dict[str, Any]) -> str:
     return str(path)
 
 
-def answer_question(run_id: str, question: str) -> dict[str, Any]:
+def answer_question(run_id: str, question: str, chat_history: list[dict[str, str]] | None = None) -> dict[str, Any]:
     phase4 = get_or_build_phase4(run_id, force=False, use_llm_summary=True)
     facts = phase4["facts_pack"]
     facts_path = phase4["files"]["facts_pack_json"]
+    if chat_history:
+        recent_history = chat_history[-6:]  # last 3 user+assistant pairs
+    else:
+        recent_history = []
 
     plan = plan_tools(question)
     tool_results: list[ToolResult] = []
@@ -161,25 +213,31 @@ def answer_question(run_id: str, question: str) -> dict[str, Any]:
         except Exception as exc:
             execution_errors.append(f"{tool}: {exc}")
 
-    prompt, allowed_text = _evidence_bundle(facts, facts_path, question, plan, tool_results)
-    system = (
-        "You are an assistant explaining a load forecast. "
-        "Answer using ONLY provided evidence. "
-        "Do not introduce any numbers not present in evidence. "
-        "If evidence is missing, answer exactly: 'That information is not available in the saved forecast data for this run.'"
-    )
+    tool_summaries = {
+        tr.tool_name: {
+            "summary": tr.summary,
+            "preview_markdown": tr.preview_markdown,
+            "errors": tr.errors,
+            "created_paths": tr.created_paths,
+        }
+        for tr in tool_results
+    }
+    context_text = _build_readable_context(facts, tool_summaries, run_id)
+    prompt = _build_prompt(context_text, question)
+    allowed_text = "\n".join([context_text, question, json.dumps(tool_summaries, ensure_ascii=False)])
 
     final = None
     status = "ok"
     for attempt in range(2):
         try:
-            text = llm_generate_text(
-                prompt=prompt,
-                system=system,
-                model="llama-3.1-8b-instant",
-                temperature=0.2 if attempt == 0 else 0.0,
-                max_tokens=700,
-            ).strip()
+            messages: list[dict[str, str]] = [{"role": "system", "content": CHAT_SYSTEM_PROMPT}]
+            for turn in recent_history:
+                role = str(turn.get("role", "")).strip()
+                content = str(turn.get("content", "")).strip()
+                if role in {"user", "assistant"} and content:
+                    messages.append({"role": role, "content": content})
+            messages.append({"role": "user", "content": prompt})
+            text = _generate_with_messages(messages, temperature=0.2 if attempt == 0 else 0.0)
             if _has_new_numbers(text, allowed_text):
                 final = None
                 continue
@@ -216,7 +274,7 @@ def answer_question(run_id: str, question: str) -> dict[str, Any]:
     for s in sources:
         fields = ", ".join(s.get("fields", []))
         sources_md_lines.append(f"- {s.get('path')} (fields: {fields})")
-    if "sources" not in final.lower():
+    if any(w in question.lower() for w in ["source", "where did", "which file", "how do you know"]) and "sources" not in final.lower():
         final = final.rstrip() + "\n\n" + "\n".join(sources_md_lines) + "\n"
 
     log_payload = {

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -12,10 +13,13 @@ from src.phase3.policy import (
     build_action_items,
     build_capacity_watchlist_hours,
     build_stability_watchlist_hours,
-    compute_confidence_grade,
+    classify_backtest_quality,
     classify_forecast_stability,
     classify_peak_timing_agreement,
     classify_risk_level,
+    compute_confidence_grade,
+    compute_energy_at_risk,
+    compute_ramp_risk,
 )
 from src.phase3.schemas import validate_action_items_json, validate_briefing_json
 
@@ -40,6 +44,56 @@ def _parse_ts(value: Any) -> pd.Timestamp | None:
         except Exception:
             ts = ts.tz_localize(None)
     return ts
+
+
+def _get_median_load_mw(run_dir: Path, phase1_data: dict[str, Any]) -> float:
+    """
+    Derive median forecast load from actual run artifacts.
+    Priority: consensus_series > forecast.csv > phase1 summary dict.
+    Returns float if found, raises RuntimeError if not — never guesses.
+    """
+    import pandas as pd
+    import os
+
+    # Priority 1: consensus series CSV
+    for key in ["consensus_series_path", "consensus_path"]:
+        p = phase1_data.get(key)
+        if p and os.path.exists(p):
+            df = pd.read_csv(p)
+            load_col = next(
+                (
+                    c
+                    for c in df.columns
+                    if "predicted" in c.lower() or "load" in c.lower() or "median" in c.lower()
+                ),
+                None,
+            )
+            if load_col:
+                val = df[load_col].median()
+                if pd.notna(val) and val > 0:
+                    return float(val)
+
+    # Priority 2: forecast.csv in run directory
+    fc_path = os.path.join(run_dir, "forecast.csv")
+    if os.path.exists(fc_path):
+        df = pd.read_csv(fc_path)
+        load_col = next((c for c in df.columns if "predicted" in c.lower() or "load" in c.lower()), None)
+        if load_col:
+            val = df[load_col].median()
+            if pd.notna(val) and val > 0:
+                return float(val)
+
+    # Priority 3: precomputed average in phase1 summary dict
+    for key in ["avg_load_mw", "mean_load_mw", "median_load_mw"]:
+        val = phase1_data.get(key)
+        if val and float(val) > 0:
+            return float(val)
+
+    # If nothing worked, raise — do not substitute a fake number
+    raise RuntimeError(
+        f"Cannot derive median_load_mw for run at {run_dir}. "
+        "Check that consensus_series or forecast.csv exists and has a load column."
+    )
 
 
 def _nearest_value(target_ts: pd.Timestamp, entries: list[tuple[pd.Timestamp, float]]) -> float | None:
@@ -161,14 +215,37 @@ def _build_executive_summary(
         f"Capacity is {float(p1['capacity_mw']):.1f} MW with {p1['hours_above_capacity']} forecast hour(s) above capacity.",
         f"Forecast variability across updates is {float(p2.get('disagreement_index') or 0):.1f} MW median spread.",
     ]
-    r2 = p25.get("attribution", {}).get("r2")
+    attr = p25.get("attribution", {}) or {}
+    r2 = attr.get("r2")
+    n = int(attr.get("n_samples") or 0)
+    reliable = bool(attr.get("r2_reliable"))
     if r2 is None:
         bullets.append("Weather impact could not be quantified for this run (insufficient overlap/update data).")
     else:
+        pct = round(float(r2) * 100)
+        if reliable:
+            bullets.append(f"Weather explains about {pct}% of recent forecast changes (R² {float(r2):.2f}, {n} samples).")
+        else:
+            bullets.append(
+                f"Weather showed a {pct}% indicative association with forecast changes this run "
+                f"(R² {float(r2):.2f}, {n} samples — treat as directional only, not statistically definitive)."
+            )
+
+    ramp = p1.get("ramp_risk") or {}
+    if ramp.get("ramp_risk_flag"):
         bullets.append(
-            f"Weather explains about {float(r2) * 100:.0f}% of recent forecast changes (explains revisions, not causality)."
+            f"Significant ramp detected: up to {ramp.get('max_ramp_up_mw', 0):.1f} MW/h rise "
+            f"and {ramp.get('max_ramp_down_mw', 0):.1f} MW/h drop within the forecast window."
         )
-    return bullets[:6]
+
+    ear = p1.get("energy_at_risk") or {}
+    ear_mwh = float(ear.get("energy_at_risk_mwh") or 0)
+    if ear_mwh > 0:
+        bullets.append(
+            f"Total energy-at-risk above capacity: {ear_mwh:.1f} MWh across forecast horizon."
+        )
+
+    return bullets[:8]
 
 
 def _build_briefing_json(phase3_input: dict[str, Any]) -> dict[str, Any]:
@@ -182,10 +259,22 @@ def _build_briefing_json(phase3_input: dict[str, Any]) -> dict[str, Any]:
         p1.get("max_exceedance_mw"),
         p2.get("exceedance_hours_majority"),
     )
+    run_dir = RUNS_ROOT / phase3_input["run_id"]
+    phase1_data = {
+        "consensus_series_path": str(run_dir / "phase2" / "consensus_series.csv"),
+        "avg_load_mw": p1.get("avg_load_mw"),
+        "mean_load_mw": p1.get("avg_load_mw"),
+        "median_load_mw": p1.get("median_load_mw"),
+    }
+    try:
+        median_load_mw = _get_median_load_mw(run_dir, phase1_data)
+    except RuntimeError:
+        median_load_mw = None
     stability_level = classify_forecast_stability(
         p2.get("disagreement_index"),
         p2.get("avg_revision_volatility"),
         p2.get("max_range_mw"),
+        median_load_mw,
     )
     peak_timing_agreement = classify_peak_timing_agreement(
         p2.get("peak_confidence"),
@@ -200,12 +289,22 @@ def _build_briefing_json(phase3_input: dict[str, Any]) -> dict[str, Any]:
     peak_ex = max(0.0, float(p1["peak"]["value_mw"]) - float(p1["capacity_mw"]))
     r2 = p25.get("attribution", {}).get("r2")
     top_driver_corr = p25.get("attribution", {}).get("top_driver_corr")
+    n_samples = int(p25.get("attribution", {}).get("n_samples") or 0)
+    r2_reliable = bool(p25.get("attribution", {}).get("r2_reliable"))
+    r2_note = p25.get("attribution", {}).get("r2_note")
     weather_display = "Not available" if r2 is None else f"{float(r2) * 100:.0f}%"
+
+    # New analytics: ramp risk, energy-at-risk, backtest quality
+    # Re-compute from stored phase3_input data (may already exist from contract.py)
+    ramp_risk = p1.get("ramp_risk") or {}
+    energy_at_risk = p1.get("energy_at_risk") or {}
+    backtest_quality = p1.get("backtest_quality") or {}
     rec_actions = [
         {
             "id": a["id"],
             "title": a["title"],
             "priority": a["priority"],
+            "recommended_next_step": a.get("recommended_next_step", ""),
             "rationale": "; ".join(
                 [
                     f"{t['metric']}={t['value']} ({t['direction']} {t['threshold']})"
@@ -249,6 +348,9 @@ def _build_briefing_json(phase3_input: dict[str, Any]) -> dict[str, Any]:
         },
         "weather_load_link": {
             "attribution_r2": r2,
+            "n_samples": n_samples,
+            "r2_reliable": r2_reliable,
+            "r2_note": r2_note,
             "top_driver_var": p25.get("attribution", {}).get("top_driver_var"),
             "top_driver_corr": top_driver_corr,
         },
@@ -270,6 +372,9 @@ def _build_briefing_json(phase3_input: dict[str, Any]) -> dict[str, Any]:
             else f"{float(top_driver_corr):.2f}",
         },
         "recommended_actions": rec_actions,
+        "ramp_risk": ramp_risk,
+        "energy_at_risk_mwh": energy_at_risk.get("energy_at_risk_mwh", 0.0),
+        "backtest_quality": backtest_quality,
         "limits": {
             "real_time_cut_note": "No actual load beyond X 00:00 used in evaluation metrics."
         },
@@ -318,6 +423,9 @@ def _build_briefing_md(phase3_input: dict[str, Any], briefing: dict[str, Any], a
     cap_watch = briefing.get("capacity_watchlist_hours", []) or []
     stab_watch = briefing.get("stability_watchlist_hours", []) or []
     has_attr = wl.get("attribution_r2") is not None
+    r2 = wl.get("attribution_r2")
+    n = int(wl.get("n_samples") or 0)
+    reliable = bool(wl.get("r2_reliable"))
 
     lines: list[str] = []
     lines.append(f"# Phase 3 Briefing - Run {phase3_input['run_id']}")
@@ -337,7 +445,17 @@ def _build_briefing_md(phase3_input: dict[str, Any], briefing: dict[str, Any], a
     )
     lines.append(f"- Forecasts are {'fairly stable' if stable else 'still shifting across recent updates'}.")
     if has_attr:
-        lines.append(f"- Weather explains about {_pct(wl.get('attribution_r2'))} of recent forecast changes.")
+        pct = round(float(r2) * 100) if r2 is not None else None
+        if reliable:
+            lines.append(
+                f"- Weather explains about {pct}% of recent forecast changes "
+                f"(R² {float(r2):.2f}, {n} samples)."
+            )
+        else:
+            lines.append(
+                f"- Weather showed a {pct}% indicative association with forecast changes this run "
+                f"(R² {float(r2):.2f}, {n} samples — treat as directional only, not statistically definitive)."
+            )
     else:
         lines.append("- Weather impact could not be quantified for this run (insufficient overlap/update data).")
     lines.append("")
@@ -372,10 +490,17 @@ def _build_briefing_md(phase3_input: dict[str, Any], briefing: dict[str, Any], a
     lines.append("")
     lines.append("## Weather Impact")
     if has_attr:
-        lines.append(
-            f"- Weather explains about `{_pct(wl['attribution_r2'])}` of recent forecast changes "
-            f"(R² `{_num2(wl['attribution_r2'])}`)."
-        )
+        pct = round(float(r2) * 100) if r2 is not None else None
+        if reliable:
+            lines.append(
+                f"- Weather explains about `{pct}%` of recent forecast changes "
+                f"(R² `{_num2(r2)}`, `{n}` samples)."
+            )
+        else:
+            lines.append(
+                f"- Weather showed a `{pct}%` indicative association with forecast changes this run "
+                f"(R² `{_num2(r2)}`, `{n}` samples — treat as directional only, not statistically definitive)."
+            )
         lines.append(
             f"- Top linked weather variable is `{wl.get('top_driver_var')}` "
             f"(correlation `{_num2(wl.get('top_driver_corr'))}`)."
@@ -407,6 +532,46 @@ def _build_briefing_md(phase3_input: dict[str, Any], briefing: dict[str, Any], a
     if not stab_watch:
         lines.append("| — | — | — | — | No stability hours available |")
     lines.append("")
+    lines.append("## Ramp Risk & Energy at Risk")
+    ramp = briefing.get("ramp_risk") or {}
+    ear_mwh = float(briefing.get("energy_at_risk_mwh") or 0)
+    if ramp.get("ramp_risk_flag"):
+        lines.append(
+            f"- **Ramp risk flagged**: max ramp up `{ramp.get('max_ramp_up_mw', 0):.1f} MW/h` "
+            f"at `{ramp.get('max_ramp_up_time', 'N/A')}`, "
+            f"max ramp down `{ramp.get('max_ramp_down_mw', 0):.1f} MW/h` "
+            f"at `{ramp.get('max_ramp_down_time', 'N/A')}` "
+            f"(threshold: `{ramp.get('ramp_threshold_mw', 'N/A')} MW/h`)."
+        )
+    else:
+        lines.append(
+            f"- No significant ramp risk detected "
+            f"(max ramp up: `{ramp.get('max_ramp_up_mw', 0):.1f} MW/h`, "
+            f"threshold: `{ramp.get('ramp_threshold_mw', 'N/A')} MW/h`)."
+        )
+    if ear_mwh > 0:
+        lines.append(f"- Total energy above capacity: `{ear_mwh:.1f} MWh` across 90-hour horizon.")
+    else:
+        lines.append("- No energy above capacity in forecast horizon (all hours within capacity).")
+    lines.append("")
+
+    lines.append("## Backtest Quality")
+    bt = briefing.get("backtest_quality") or {}
+    bt_flag = bt.get("backtest_quality_flag", "unknown")
+    bt_note = bt.get("note", "Not available.")
+    bt_pct = bt.get("mae_pct")
+    if bt_flag == "poor":
+        lines.append(f"- **Recent model accuracy: POOR** — {bt_note}")
+    elif bt_flag == "moderate":
+        lines.append(f"- Recent model accuracy: Moderate — {bt_note}")
+    elif bt_flag == "good":
+        lines.append(f"- Recent model accuracy: Good — {bt_note}")
+    else:
+        lines.append(f"- Recent model accuracy: {bt_note}")
+    if bt_pct is not None:
+        lines.append(f"- Yesterday MAE was `{float(bt_pct)*100:.1f}%` of average load.")
+    lines.append("")
+
     lines.append("## Recommended Actions")
     for a in actions["items"]:
         lines.append(f"- `{a['id']}` ({a['priority']}): {a['title']} - {a['recommended_next_step']}")

@@ -2,40 +2,41 @@ from __future__ import annotations
 
 from typing import Any
 
-
-# Configurable thresholds
-RISK_SEVERE_EXCEED_MAJ = 3
-RISK_SEVERE_MAX_EX_MW = 25
-RISK_SEVERE_HRS_ABOVE = 8
-RISK_HIGH_EXCEED_MAJ = 1
-RISK_HIGH_MAX_EX_MW = 10
-RISK_HIGH_HRS_ABOVE = 4
-RISK_MEDIUM_MAX_EX_MIN = 3
-RISK_LOW_MAX_EX_LT = 3
-
-STAB_HIGHLY_REV_VOL = 5
-STAB_HIGHLY_MAX_RANGE = 20
-STAB_HIGHLY_DISAGREE = 6
-STAB_UNSTABLE_REV_VOL = 2
-STAB_UNSTABLE_MAX_RANGE = 10
-STAB_UNSTABLE_DISAGREE = 4
-STAB_MODERATE_REV_VOL = 1
-STAB_MODERATE_MAX_RANGE = 5
-STAB_MODERATE_DISAGREE = 2
-
-PEAK_STRONG_CONF = 0.8
-PEAK_STRONG_SPREAD = 1
-PEAK_OK_CONF = 0.6
-PEAK_OK_SPREAD = 3
-
-DISAGREEMENT_P50 = 1.8
-DISAGREEMENT_P75 = 2.6
-DISAGREEMENT_P90 = 3.8
-T2M_DISAGREEMENT_HIGH = 0.9
-ATTRIBUTION_R2_HIGH = 0.25
-REV_VOL_HIGH = 2.0
-MAX_RANGE_HIGH = 8.0
-VOI_MAJOR_IMPROVEMENT_MW = 2.0
+from src.constants import (
+    ATTRIBUTION_R2_HIGH,
+    BACKTEST_MODERATE_PCT,
+    BACKTEST_POOR_PCT,
+    CAPACITY_AT_RATIO,
+    CAPACITY_NEAR_RATIO,
+    DISAGREEMENT_P50,
+    DISAGREEMENT_P75,
+    DISAGREEMENT_P90,
+    GRADE_A_PEAK_CONF_MIN,
+    GRADE_A_SPREAD_MAX,
+    GRADE_B_PEAK_CONF_MIN,
+    GRADE_B_SPREAD_MAX,
+    GRADE_C_PEAK_CONF_MIN,
+    MAX_RANGE_HIGH,
+    PEAK_OK_CONF,
+    PEAK_OK_SPREAD,
+    PEAK_STRONG_CONF,
+    PEAK_STRONG_SPREAD,
+    RAMP_HIGH_PCT,
+    REV_VOL_HIGH,
+    RISK_HIGH_EXCEED_MAJ,
+    RISK_HIGH_HRS_ABOVE,
+    RISK_HIGH_MAX_EX_MW,
+    RISK_LOW_MAX_EX_LT,
+    RISK_MEDIUM_MAX_EX_MIN,
+    RISK_MEDIUM_HRS_MAX,
+    RISK_MEDIUM_HRS_MIN,
+    RISK_SEVERE_EXCEED_MAJ,
+    RISK_SEVERE_HRS_ABOVE,
+    RISK_SEVERE_MAX_EX_MW,
+    STAB_PCT,
+    T2M_DISAGREEMENT_HIGH,
+    VOI_MAJOR_IMPROVEMENT_MW,
+)
 
 
 GRADE_ORDER = ["A", "B", "C", "D"]
@@ -59,7 +60,7 @@ def classify_risk_level(
         return "SEVERE"
     if maj >= RISK_HIGH_EXCEED_MAJ or ex >= RISK_HIGH_MAX_EX_MW or h >= RISK_HIGH_HRS_ABOVE:
         return "HIGH"
-    if (1 <= h <= 3) or (RISK_MEDIUM_MAX_EX_MIN <= ex < RISK_HIGH_MAX_EX_MW):
+    if (RISK_MEDIUM_HRS_MIN <= h <= RISK_MEDIUM_HRS_MAX) or (RISK_MEDIUM_MAX_EX_MIN <= ex < RISK_HIGH_MAX_EX_MW):
         return "MEDIUM"
     if h == 0 and maj == 0 and ex < RISK_LOW_MAX_EX_LT:
         return "LOW"
@@ -68,20 +69,71 @@ def classify_risk_level(
 
 def classify_forecast_stability(
     disagreement_index: float | None,
-    avg_revision_volatility: float | None,
-    max_range_mw: float | None,
+    revision_volatility: float | None,
+    max_range: float | None,
+    median_load_mw: float | None,
 ) -> str:
+    if median_load_mw is None or float(median_load_mw) <= 0:
+        return "UNKNOWN"
     d = float(disagreement_index or 0)
-    v = float(avg_revision_volatility or 0)
-    r = float(max_range_mw or 0)
+    v = float(revision_volatility or 0)
+    r = float(max_range or 0)
+    m = float(median_load_mw)
 
-    if v >= STAB_HIGHLY_REV_VOL or r >= STAB_HIGHLY_MAX_RANGE or d >= STAB_HIGHLY_DISAGREE:
+    # Percentage thresholds — tune these if grid behavior changes
+    # All expressed as fraction of median load (e.g. 0.012 = 1.2%)
+    PCT_MODERATE_DISAGREE = STAB_PCT["moderate"]["disagree"]
+    PCT_UNSTABLE_DISAGREE = STAB_PCT["unstable"]["disagree"]
+    PCT_HIGHLY_DISAGREE = STAB_PCT["highly"]["disagree"]
+
+    PCT_MODERATE_VOL = STAB_PCT["moderate"]["vol"]
+    PCT_UNSTABLE_VOL = STAB_PCT["unstable"]["vol"]
+    PCT_HIGHLY_VOL = STAB_PCT["highly"]["vol"]
+
+    PCT_MODERATE_RANGE = STAB_PCT["moderate"]["range"]
+    PCT_UNSTABLE_RANGE = STAB_PCT["unstable"]["range"]
+    PCT_HIGHLY_RANGE = STAB_PCT["highly"]["range"]
+
+    # Derived thresholds — all in same MW units as inputs
+    d_moderate = m * PCT_MODERATE_DISAGREE
+    d_unstable = m * PCT_UNSTABLE_DISAGREE
+    d_highly = m * PCT_HIGHLY_DISAGREE
+
+    v_moderate = m * PCT_MODERATE_VOL
+    v_unstable = m * PCT_UNSTABLE_VOL
+    v_highly = m * PCT_HIGHLY_VOL
+
+    r_moderate = m * PCT_MODERATE_RANGE
+    r_unstable = m * PCT_UNSTABLE_RANGE
+    r_highly = m * PCT_HIGHLY_RANGE
+
+    # Classification — same logic structure as before
+    if d >= d_highly or v >= v_highly or r >= r_highly:
         return "HIGHLY_UNSTABLE"
-    if v >= STAB_UNSTABLE_REV_VOL or r >= STAB_UNSTABLE_MAX_RANGE or d >= STAB_UNSTABLE_DISAGREE:
+    if d >= d_unstable or v >= v_unstable or r >= r_unstable:
         return "UNSTABLE"
-    if v >= STAB_MODERATE_REV_VOL or r >= STAB_MODERATE_MAX_RANGE or d >= STAB_MODERATE_DISAGREE:
+    if d >= d_moderate or v >= v_moderate or r >= r_moderate:
         return "MODERATE"
     return "STABLE"
+
+
+def _capacity_reason(expected_mw: float, capacity_mw: float) -> str:
+    """
+    Return a precise reason label based on actual load vs capacity ratio.
+    All thresholds are derived from capacity_mw — no hardcoded MW values.
+    """
+    if capacity_mw <= 0:
+        return "Capacity unknown"
+    ratio = expected_mw / capacity_mw
+    exceedance = expected_mw - capacity_mw
+
+    if exceedance > 0:
+        return f"OVER CAPACITY +{exceedance:.1f} MW ({ratio*100:.0f}%)"
+    if ratio >= CAPACITY_AT_RATIO:
+        return f"At capacity ({ratio*100:.0f}%)"
+    if ratio >= CAPACITY_NEAR_RATIO:
+        return f"Near capacity ({ratio*100:.0f}%)"
+    return f"High load watch ({ratio*100:.0f}%)"
 
 
 def classify_peak_timing_agreement(
@@ -119,11 +171,11 @@ def compute_confidence_grade(phase3_input: dict[str, Any]) -> tuple[str, list[st
     if peak_conf is None or disagreement is None or spread is None:
         return "D", ["Missing key stability metrics for confidence grading."]
 
-    if peak_conf >= 0.70 and disagreement <= DISAGREEMENT_P50 and spread <= 2:
+    if peak_conf >= GRADE_A_PEAK_CONF_MIN and disagreement <= DISAGREEMENT_P50 and spread <= GRADE_A_SPREAD_MAX:
         grade = "A"
-    elif peak_conf >= 0.55 and disagreement <= DISAGREEMENT_P75 and spread <= 4:
+    elif peak_conf >= GRADE_B_PEAK_CONF_MIN and disagreement <= DISAGREEMENT_P75 and spread <= GRADE_B_SPREAD_MAX:
         grade = "B"
-    elif peak_conf >= 0.40 or disagreement <= DISAGREEMENT_P90:
+    elif peak_conf >= GRADE_C_PEAK_CONF_MIN or disagreement <= DISAGREEMENT_P90:
         grade = "C"
     else:
         grade = "D"
@@ -171,6 +223,122 @@ def _as_float(value: Any) -> float | None:
         return None
 
 
+def compute_ramp_risk(forecast_hours: list[dict[str, Any]], avg_load_mw: float | None = None) -> dict[str, Any]:
+    """
+    Identify rapid load ramps (up or down) across the 90-hour horizon.
+    Threshold: RAMP_HIGH_PCT of avg_load_mw per hour.
+    Falls back to a fixed absolute threshold (50 MW/h) if avg_load_mw is unavailable.
+    """
+    if not forecast_hours or len(forecast_hours) < 2:
+        return {
+            "ramp_risk_flag": False,
+            "max_ramp_up_mw": None,
+            "max_ramp_up_time": None,
+            "max_ramp_down_mw": None,
+            "max_ramp_down_time": None,
+            "ramp_threshold_mw": None,
+            "note": "Insufficient forecast points for ramp analysis.",
+        }
+
+    try:
+        loads = [(h.get("timestamp"), float(h.get("predicted_load", 0.0))) for h in forecast_hours]
+    except Exception:
+        return {"ramp_risk_flag": False, "max_ramp_up_mw": None, "max_ramp_up_time": None,
+                "max_ramp_down_mw": None, "max_ramp_down_time": None, "ramp_threshold_mw": None,
+                "note": "Could not parse forecast hours for ramp analysis."}
+
+    if avg_load_mw and float(avg_load_mw) > 0:
+        threshold_mw = float(avg_load_mw) * RAMP_HIGH_PCT
+    else:
+        threshold_mw = 50.0
+
+    max_up = 0.0
+    max_up_time = None
+    max_down = 0.0
+    max_down_time = None
+
+    for i in range(1, len(loads)):
+        delta = loads[i][1] - loads[i - 1][1]
+        if delta > max_up:
+            max_up = delta
+            max_up_time = loads[i][0]
+        if (-delta) > max_down:
+            max_down = -delta
+            max_down_time = loads[i][0]
+
+    ramp_flag = max_up >= threshold_mw or max_down >= threshold_mw
+    return {
+        "ramp_risk_flag": ramp_flag,
+        "max_ramp_up_mw": round(max_up, 1),
+        "max_ramp_up_time": max_up_time,
+        "max_ramp_down_mw": round(max_down, 1),
+        "max_ramp_down_time": max_down_time,
+        "ramp_threshold_mw": round(threshold_mw, 1),
+        "note": f"Threshold: {threshold_mw:.1f} MW/h ({RAMP_HIGH_PCT*100:.0f}% of avg load).",
+    }
+
+
+def compute_energy_at_risk(forecast_hours: list[dict[str, Any]], capacity_mw: float) -> dict[str, Any]:
+    """
+    Compute total MWh above capacity (energy-at-risk) across the forecast horizon.
+    Each hourly exceedance contributes 1 hour × exceedance_mw MWh.
+    """
+    if not forecast_hours or capacity_mw <= 0:
+        return {"energy_at_risk_mwh": 0.0, "hours_above_capacity": 0, "note": "No forecast data or invalid capacity."}
+
+    total_mwh = 0.0
+    hours_above = 0
+    for h in forecast_hours:
+        try:
+            load = float(h.get("predicted_load", 0.0))
+        except Exception:
+            continue
+        if load > capacity_mw:
+            total_mwh += load - capacity_mw
+            hours_above += 1
+
+    return {
+        "energy_at_risk_mwh": round(total_mwh, 1),
+        "hours_above_capacity": hours_above,
+        "note": f"Total energy above {capacity_mw:.1f} MW capacity threshold.",
+    }
+
+
+def classify_backtest_quality(mae_mw: float | None, avg_load_mw: float | None) -> dict[str, Any]:
+    """
+    Classify recent model accuracy based on MAE as a percentage of average load.
+    poor: MAE > BACKTEST_POOR_PCT of avg load
+    moderate: MAE > BACKTEST_MODERATE_PCT of avg load
+    good: MAE <= BACKTEST_MODERATE_PCT
+    """
+    if mae_mw is None or avg_load_mw is None or float(avg_load_mw) <= 0:
+        return {
+            "backtest_quality_flag": "unknown",
+            "mae_pct": None,
+            "note": "Backtest MAE or average load not available.",
+        }
+
+    mae = float(mae_mw)
+    avg = float(avg_load_mw)
+    mae_pct = mae / avg
+
+    if mae_pct > BACKTEST_POOR_PCT:
+        flag = "poor"
+        note = f"MAE is {mae_pct*100:.1f}% of avg load — above {BACKTEST_POOR_PCT*100:.0f}% threshold."
+    elif mae_pct > BACKTEST_MODERATE_PCT:
+        flag = "moderate"
+        note = f"MAE is {mae_pct*100:.1f}% of avg load — moderate accuracy."
+    else:
+        flag = "good"
+        note = f"MAE is {mae_pct*100:.1f}% of avg load — within acceptable range."
+
+    return {
+        "backtest_quality_flag": flag,
+        "mae_pct": round(mae_pct, 4),
+        "note": note,
+    }
+
+
 def build_capacity_watchlist_hours(phase3_input: dict[str, Any], max_items: int = 6) -> list[dict[str, Any]]:
     p2 = phase3_input.get("phase2", {})
     p1 = phase3_input.get("phase1", {})
@@ -196,7 +364,7 @@ def build_capacity_watchlist_hours(phase3_input: dict[str, Any], max_items: int 
                     "time": r.get("time"),
                     "expected_load_mw": expected,
                     "exceedance_mw": max(0.0, expected - capacity),
-                    "reason": "Near/above capacity",
+                    "reason": _capacity_reason(expected, capacity),
                     "exceed_prob_proxy": _as_float(r.get("exceed_prob_proxy")),
                 }
             )
@@ -206,7 +374,7 @@ def build_capacity_watchlist_hours(phase3_input: dict[str, Any], max_items: int 
     top_load = p1.get("top_load_hours", []) or []
     if top_load:
         rows = sorted(top_load, key=lambda r: _as_float(r.get("predicted_load_mw")) or 0.0, reverse=True)
-        near = [r for r in rows if (_as_float(r.get("predicted_load_mw")) or 0.0) >= capacity * 0.98]
+        near = [r for r in rows if (_as_float(r.get("predicted_load_mw")) or 0.0) >= capacity * CAPACITY_NEAR_RATIO]
         rows = near + [r for r in rows if r not in near]
         for r in rows[:max_items]:
             expected = _as_float(r.get("predicted_load_mw"))
@@ -217,7 +385,7 @@ def build_capacity_watchlist_hours(phase3_input: dict[str, Any], max_items: int 
                     "time": r.get("time"),
                     "expected_load_mw": expected,
                     "exceedance_mw": max(0.0, expected - capacity),
-                    "reason": "Near/above capacity",
+                    "reason": _capacity_reason(expected, capacity),
                     "exceed_prob_proxy": None,
                 }
             )
@@ -232,7 +400,7 @@ def build_capacity_watchlist_hours(phase3_input: dict[str, Any], max_items: int 
                 "time": peak.get("time"),
                 "expected_load_mw": expected,
                 "exceedance_mw": max(0.0, expected - capacity),
-                "reason": "Near/above capacity",
+                "reason": _capacity_reason(expected, capacity),
                 "exceed_prob_proxy": None,
             }
         )
@@ -413,5 +581,55 @@ def build_action_items(
             }
         )
 
-    # 3-6 actions max
-    return actions[:6]
+    ramp_risk = (p1.get("ramp_risk") or {})
+    if ramp_risk.get("ramp_risk_flag"):
+        max_up = ramp_risk.get("max_ramp_up_mw")
+        max_down = ramp_risk.get("max_ramp_down_mw")
+        threshold = ramp_risk.get("ramp_threshold_mw")
+        actions.append(
+            {
+                "id": "ACT-006",
+                "title": "High Ramp Rate Detected",
+                "priority": "P1",
+                "confidence": 0.8,
+                "triggered_by": [
+                    {
+                        "metric": "max_ramp_up_mw",
+                        "value": max_up,
+                        "threshold": f">= {threshold} MW/h",
+                        "direction": "above",
+                    }
+                ],
+                "recommended_next_step": (
+                    f"Forecast shows ramp up to {max_up:.1f} MW/h and down to {max_down:.1f} MW/h. "
+                    "Ensure fast-ramping generation is available during peak ramp windows."
+                ),
+            }
+        )
+
+    backtest = (p1.get("backtest_quality") or {})
+    if backtest.get("backtest_quality_flag") == "poor":
+        mae_pct = backtest.get("mae_pct")
+        actions.append(
+            {
+                "id": "ACT-007",
+                "title": "Elevated Recent Forecast Error",
+                "priority": "P1",
+                "confidence": 0.75,
+                "triggered_by": [
+                    {
+                        "metric": "backtest_mae_pct",
+                        "value": f"{float(mae_pct or 0)*100:.1f}%",
+                        "threshold": f"> {BACKTEST_POOR_PCT*100:.0f}% of avg load",
+                        "direction": "above",
+                    }
+                ],
+                "recommended_next_step": (
+                    f"Yesterday's MAE was {float(mae_pct or 0)*100:.1f}% of average load. "
+                    "Apply wider operational margins and verify input data quality."
+                ),
+            }
+        )
+
+    # max 7 actions
+    return actions[:7]

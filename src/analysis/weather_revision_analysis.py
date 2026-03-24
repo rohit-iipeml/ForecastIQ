@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 
+from src.constants import MIN_SAMPLES_RELIABLE_R2
 from src.analysis.revision_analysis import _parse_run_id
 from src.phase1_backend import run_for_date
 
@@ -227,6 +228,14 @@ def compute_weather_load_attribution(
             "standardized_coefficients": {},
             "r2": None,
             "n_samples": 0,
+            "r2_reliable": False,
+            "r2_note": (
+                f"indicative only — 0 samples available, "
+                f"{MIN_SAMPLES_RELIABLE_R2} needed for reliability"
+            ),
+            "delta_load_min": None,
+            "delta_load_max": None,
+            "delta_load_mean": None,
             "note": "Insufficient load init runs for revision attribution.",
         }
         corr = pd.DataFrame(columns=["variable", "corr_with_delta_load"])
@@ -254,6 +263,8 @@ def compute_weather_load_attribution(
     pairs = pairs.reset_index()
     model_df = pairs.dropna(subset=["delta_load"] + feature_cols) if feature_cols else pairs.iloc[0:0]
 
+    n_samples = int(len(model_df))
+    r2_reliable = n_samples >= MIN_SAMPLES_RELIABLE_R2
     if feature_cols and len(model_df) >= 3:
         X = model_df[feature_cols].to_numpy(dtype=float)
         y = model_df["delta_load"].to_numpy(dtype=float)
@@ -276,7 +287,19 @@ def compute_weather_load_attribution(
             "coefficients": coef,
             "standardized_coefficients": std_coef,
             "r2": r2,
-            "n_samples": int(len(model_df)),
+            "n_samples": n_samples,
+            "r2_reliable": r2_reliable,
+            "r2_note": (
+                "reliable"
+                if r2_reliable
+                else (
+                    f"indicative only — {n_samples} samples available, "
+                    f"{MIN_SAMPLES_RELIABLE_R2} needed for reliability"
+                )
+            ),
+            "delta_load_min": float(model_df["delta_load"].min()),
+            "delta_load_max": float(model_df["delta_load"].max()),
+            "delta_load_mean": float(model_df["delta_load"].mean()),
             "note": "Revision attribution / explained variance only (not causality).",
         }
     else:
@@ -287,7 +310,19 @@ def compute_weather_load_attribution(
             "coefficients": {},
             "standardized_coefficients": {},
             "r2": None,
-            "n_samples": int(len(model_df)),
+            "n_samples": n_samples,
+            "r2_reliable": r2_reliable,
+            "r2_note": (
+                "reliable"
+                if r2_reliable
+                else (
+                    f"indicative only — {n_samples} samples available, "
+                    f"{MIN_SAMPLES_RELIABLE_R2} needed for reliability"
+                )
+            ),
+            "delta_load_min": float(model_df["delta_load"].min()) if n_samples else None,
+            "delta_load_max": float(model_df["delta_load"].max()) if n_samples else None,
+            "delta_load_mean": float(model_df["delta_load"].mean()) if n_samples else None,
             "note": "Insufficient samples or variables for fit.",
         }
 

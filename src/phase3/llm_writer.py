@@ -110,7 +110,7 @@ def generate_briefing_llm_md(run_id: str, force: bool = False) -> dict[str, Any]
 
     prompt_text = build_llm_writer_prompt(phase3_input, briefing_json, action_items, baseline_md)
     prompt_hash = hashlib.sha256(prompt_text.encode("utf-8")).hexdigest()
-    model = "llama-3.1-8b-instant"
+    model = "llama-3.3-70b-versatile"
 
     if not force and p_out.exists() and p_meta.exists():
         try:
@@ -133,12 +133,16 @@ def generate_briefing_llm_md(run_id: str, force: bool = False) -> dict[str, Any]
         llm_md = llm_generate_text(
             prompt=prompt_text,
             system=(
-                "You rewrite operational markdown. Preserve all numbers exactly. "
-                "Do not add any new numeric values."
+                "You are a senior power grid operations analyst writing a daily forecast briefing.\n"
+                "Your audience is both grid operators (technical) and shift managers (non-technical).\n"
+                "Write in clear, plain English. Be direct and confident. \n"
+                "Use short sentences. Avoid jargon. Round numbers naturally in prose (e.g. \"about 354 MW\").\n"
+                "Preserve all numeric values exactly — do not invent or change any numbers.\n"
+                "Do not use code fences. Output clean markdown only."
             ),
             model=model,
             temperature=0.2,
-            max_tokens=1200,
+            max_tokens=1500,
         ).strip()
 
         allowed_sources = "\n".join(

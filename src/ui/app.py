@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import sys
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
 import pandas as pd
@@ -20,10 +20,17 @@ from src.phase25_backend import get_or_build_phase25
 from src.phase3.generator import generate_phase3_outputs
 from src.phase4.generator import get_or_build_phase4
 from src.phase4.chat_handler import answer_question
-from src.phase4.planner import plan_tools
+from src.constants import MIN_SAMPLES_RELIABLE_R2
 
 
 PLOT_TEMPLATE = "plotly_dark"
+STABILITY_DISPLAY = {
+    "STABLE": ("🟢", "Stable"),
+    "MODERATE": ("🟡", "Moderate"),
+    "UNSTABLE": ("🔴", "Unstable"),
+    "HIGHLY_UNSTABLE": ("🔴", "Unstable"),
+    "UNKNOWN": ("⚪", "Unknown"),
+}
 
 
 def _fmt_mw(value: Any) -> str:
@@ -61,11 +68,24 @@ def _friendly_level(value: Any) -> str:
     return text.title()
 
 
+def _stability_display(value: Any) -> tuple[str, str]:
+    key = str(value).strip().upper() if value is not None else "UNKNOWN"
+    return STABILITY_DISPLAY.get(key, STABILITY_DISPLAY["UNKNOWN"])
+
+
 def _fmt_ts_short(value: Any) -> str:
     ts = pd.to_datetime(value, errors="coerce")
     if pd.isna(ts):
-        return "Not available"
+        return "N/A"
     return ts.strftime("%b %d, %H:%M")
+
+
+def _fmt_ts_hour(value: Any) -> str:
+    """Short format for metric boxes — just 'HH:MM'."""
+    ts = pd.to_datetime(value, errors="coerce")
+    if pd.isna(ts):
+        return "N/A"
+    return ts.strftime("%H:%M")
 
 
 def _safe_metrics(metrics: Dict[str, Any], key: str, default: float = 0.0) -> float:
@@ -91,6 +111,45 @@ def _chart_key(run_id: str, tab: str, chart: str, section: str = "", extra: str 
     raw = f"{tab}::{section}::{chart}::{run_id}::{extra}"
     safe = "".join(ch if ch.isalnum() or ch in {"_", "-", ":"} else "_" for ch in raw.lower())
     return safe
+
+
+def render_status_card(facts_pack: Dict[str, Any]) -> None:
+    risk = str(facts_pack.get("risk_level", "UNKNOWN"))
+    stability = str(
+        facts_pack.get("stability_label", facts_pack.get("forecast_stability_level", "UNKNOWN"))
+    )
+    peak_block = facts_pack.get("peak", {}) or {}
+    cap_block = facts_pack.get("capacity", {}) or {}
+    peak_mw = facts_pack.get("peak_mw", peak_block.get("value_mw", "N/A"))
+    peak_time = facts_pack.get("peak_time", peak_block.get("time", "N/A"))
+    cap_mw = facts_pack.get("capacity_mw", peak_block.get("capacity_mw", "N/A"))
+    exceedance_hrs = facts_pack.get("exceedance_hours", cap_block.get("hours_above_capacity", 0))
+
+    risk_color = {"LOW": "🟢", "MEDIUM": "🟡", "HIGH": "🔴", "SEVERE": "🔴"}.get(risk, "⚪")
+    stab_icon, stab_text = _stability_display(stability)
+    stab_help = (
+        "Stability could not be assessed — load data unavailable for this run."
+        if str(stability).strip().upper() == "UNKNOWN"
+        else None
+    )
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Risk Level", f"{risk_color} {risk}")
+    with col2:
+        st.metric("Forecast Stability", f"{stab_icon} {stab_text}", help=stab_help)
+    with col3:
+        st.metric("Peak Load", f"{peak_mw} MW", help=f"at {peak_time}")
+    with col4:
+        label = "⚠️ Above Cap" if float(exceedance_hrs or 0) > 0 else "✅ Within Cap"
+        st.metric(
+            "Capacity Status",
+            label,
+            delta=f"{int(float(exceedance_hrs or 0))}h over" if float(exceedance_hrs or 0) > 0 else None,
+            delta_color="inverse",
+            help=f"Grid capacity: {cap_mw} MW",
+        )
+    st.divider()
 
 
 def _load_forecast_plot(forecast_df: pd.DataFrame, capacity_mw: float) -> go.Figure:
@@ -482,6 +541,13 @@ def _weather_var_disagreement_bar(weather_day_metrics: Dict[str, Any]) -> go.Fig
 
 
 def _attribution_scatter_plot(revision_pairs_df: pd.DataFrame, var_col: str, corr: Optional[float]) -> go.Figure:
+    y_vals = pd.to_numeric(revision_pairs_df.get("delta_load"), errors="coerce").dropna()
+    if y_vals.empty:
+        y_abs_max = 0.1
+    else:
+        y_abs_max = max(abs(float(y_vals.min())), abs(float(y_vals.max())), 0.1)
+    y_range = [-y_abs_max * 1.15, y_abs_max * 1.15]  # 15% padding, symmetric
+
     fig = go.Figure()
     fig.add_trace(
         go.Scatter(
@@ -508,6 +574,7 @@ def _attribution_scatter_plot(revision_pairs_df: pd.DataFrame, var_col: str, cor
         title=f"Revision Attribution: ΔLoad vs {var_col}{title_corr}",
         xaxis_title=var_col,
         yaxis_title="ΔLoad",
+        yaxis=dict(range=y_range),
         template=PLOT_TEMPLATE,
         margin=dict(l=20, r=20, t=60, b=20),
         font=dict(size=13),
@@ -552,6 +619,17 @@ def main() -> None:
   margin-right: 0.45rem;
   margin-bottom: 0.45rem;
   font-size: 0.86rem;
+  white-space: nowrap;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+.status-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.5rem;
 }
 </style>
         """,
@@ -642,6 +720,19 @@ def main() -> None:
             "Artifacts",
         ]
     )
+    run_date_str = loaded_init.strftime("%Y-%m-%d %H:%M")
+    artifact_timestamp = None
+    try:
+        fjson = Path(result.get("files", {}).get("forecast_json", ""))
+        if fjson.exists():
+            artifact_timestamp = datetime.fromtimestamp(fjson.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+    except Exception:
+        artifact_timestamp = None
+    if run_id:
+        st.caption(
+            f"📊 Viewing run `{run_id}` · {run_date_str} · "
+            f"Last updated: {artifact_timestamp if artifact_timestamp else 'N/A'}"
+        )
 
     with tabs[0]:
         st.subheader("Overview")
@@ -660,16 +751,15 @@ def main() -> None:
         k4.metric("Hours Above Capacity", str(int(_safe_metrics(metrics, "hours_above_capacity"))))
 
         risk_txt = _friendly_level(p3_overview_payload.get("risk_level", "Not available"))
-        stability_txt = _friendly_level(p3_overview_payload.get("forecast_stability_level", "Not available"))
+        stability_icon, stability_label = _stability_display(p3_overview_payload.get("forecast_stability_level", "UNKNOWN"))
+        stability_txt = f"{stability_icon} {stability_label}"
         agreement_txt = _friendly_level(p3_overview_payload.get("peak_timing_agreement", "Not available"))
         st.markdown(
-            "".join(
-                [
-                    f"<span class='status-chip'><strong>Risk:</strong> {risk_txt}</span>",
-                    f"<span class='status-chip'><strong>Forecast Stability:</strong> {stability_txt}</span>",
-                    f"<span class='status-chip'><strong>Peak Timing:</strong> {agreement_txt}</span>",
-                ]
-            ),
+            "<div class='status-chips-row'>"
+            + f"<span class='status-chip'><strong>Risk:</strong> {risk_txt}</span>"
+            + f"<span class='status-chip'><strong>Stability:</strong> {stability_txt}</span>"
+            + f"<span class='status-chip'><strong>Peak Timing:</strong> {agreement_txt}</span>"
+            + "</div>",
             unsafe_allow_html=True,
         )
 
@@ -687,21 +777,30 @@ def main() -> None:
             risk_level = risk_txt
             stability_level = stability_txt
             peak_agree = agreement_txt
-            st.write(
-                "\n".join(
-                    [
-                        f"- Peak is expected around {peak_ts} at {peak_mw}.",
-                        f"- Capacity threshold is {_fmt_mw(capacity_mw)} with {int(_safe_metrics(metrics, 'hours_above_capacity'))} forecast hour(s) above it.",
-                        f"- Risk level is **{risk_level}** and forecast stability is **{stability_level}**.",
-                        f"- Peak timing agreement across recent updates is **{peak_agree}**.",
-                        "- Focus operations on top watch hours below before commitment decisions.",
-                    ]
+            _summary_bullets = [
+                f"- Peak is expected around {peak_ts} at {peak_mw}.",
+                f"- Capacity threshold is {_fmt_mw(capacity_mw)} with {int(_safe_metrics(metrics, 'hours_above_capacity'))} forecast hour(s) above it.",
+                f"- Risk level is **{risk_level}** and forecast stability is **{stability_level}**.",
+                f"- Peak timing agreement across recent updates is **{peak_agree}**.",
+            ]
+            _ramp = p3_overview_payload.get("ramp_risk") or {}
+            if _ramp.get("ramp_risk_flag"):
+                _summary_bullets.append(
+                    f"- ⚠️ Ramp alert: max rise {_ramp.get('max_ramp_up_mw', 0):.0f} MW/h, "
+                    f"max drop {_ramp.get('max_ramp_down_mw', 0):.0f} MW/h."
                 )
-            )
+            _ear = float(p3_overview_payload.get("energy_at_risk_mwh") or 0)
+            if _ear > 0:
+                _summary_bullets.append(f"- Energy above capacity: **{_ear:.1f} MWh** across horizon.")
+            _bt = p3_overview_payload.get("backtest_quality") or {}
+            if _bt.get("backtest_quality_flag") == "poor":
+                _summary_bullets.append(f"- ⚠️ Recent model accuracy is poor — apply wider margins.")
+            _summary_bullets.append("- Focus operations on top watch hours below before commitment decisions.")
+            st.markdown("\n".join(_summary_bullets))
         with right:
             st.markdown("### Today's Callouts")
             c1, c2, c3 = st.columns(3)
-            c1.metric("Peak Hour", _fmt_ts_short(metrics.get("max_predicted_load_ts")))
+            c1.metric("Peak Hour", _fmt_ts_hour(metrics.get("max_predicted_load_ts")), help=_fmt_ts_short(metrics.get("max_predicted_load_ts")))
             c2.metric("Risk", risk_txt)
             c3.metric("Peak Agreement", agreement_txt)
             c4, c5 = st.columns(2)
@@ -852,14 +951,15 @@ def main() -> None:
             with st.expander("Day metrics", expanded=False):
                 st.json(dm)
         else:
-            m1, m2, m3, m4, m5, m6 = st.columns(6)
-            m1.metric("Disagreement Index", _fmt_mw(float(dm.get("disagreement_index_day", 0.0))))
-            m2.metric("Peak Confidence", _fmt_pct(float(dm.get("peak_confidence", 0.0))))
-            m3.metric("Peak Time Spread (h)", str(dm.get("peak_time_spread_hours", "Not available")))
-            m4.metric("Avg Revision Volatility", _fmt_mw(float(dm.get("avg_revision_volatility", 0.0))))
-            m5.metric("Max Range", _fmt_mw(float(dm.get("max_range", 0.0))))
-            m6.metric("Majority Exceed Hours", str(int(dm.get("day_exceedance_hours_majority", 0))))
-            st.caption(f"Max range timestamp: {dm.get('max_range_timestamp', 'Not available')}")
+            r1c1, r1c2, r1c3 = st.columns(3)
+            r1c1.metric("Disagreement", _fmt_mw(float(dm.get("disagreement_index_day", 0.0))))
+            r1c2.metric("Peak Confidence", _fmt_pct(float(dm.get("peak_confidence", 0.0))))
+            r1c3.metric("Peak Spread (h)", str(dm.get("peak_time_spread_hours", "N/A")))
+            r2c1, r2c2, r2c3 = st.columns(3)
+            r2c1.metric("Avg Volatility", _fmt_mw(float(dm.get("avg_revision_volatility", 0.0))))
+            r2c2.metric("Max Range", _fmt_mw(float(dm.get("max_range", 0.0))))
+            r2c3.metric("Majority Exceed Hrs", str(int(dm.get("day_exceedance_hours_majority", 0))))
+            st.caption(f"Max range at: {dm.get('max_range_timestamp', 'Not available')}")
 
             if not consensus_df.empty:
                 consensus_df["target_timestamp"] = pd.to_datetime(consensus_df["target_timestamp"])
@@ -919,15 +1019,24 @@ def main() -> None:
             load_dis = float(p2["day_metrics"].get("disagreement_index_day", 0.0))
             t2m_dis = p25["weather_day_metrics"].get("variables", {}).get("T2m", {}).get("variable_disagreement_index_iqr")
             r2 = p25["attribution_fit"].get("r2")
+            n_samples = int(p25["attribution_fit"].get("n_samples", 0) or 0)
+            r2_reliable = bool(p25["attribution_fit"].get("r2_reliable", False))
             peak_conf = p2["day_metrics"].get("peak_confidence")
             high_ops = int(p25["joint_ops_risk_df"]["HighOpsRisk"].sum()) if not p25["joint_ops_risk_df"].empty else 0
 
-            k1, k2, k3, k4, k5 = st.columns(5)
-            k1.metric("Load Disagreement Index", _fmt_mw(load_dis))
-            k2.metric("T2m Disagreement Index", _fmt_mw(float(t2m_dis)) if t2m_dis is not None else "Not available")
-            k3.metric("Attribution R²", _fmt_num(float(r2), 2) if r2 is not None else "Not available")
-            k4.metric("Peak Confidence", _fmt_pct(float(peak_conf)) if peak_conf is not None else "Not available")
-            k5.metric("# High Ops Risk Hours", str(high_ops))
+            ok1, ok2, ok3 = st.columns(3)
+            ok1.metric("Load Disagreement", _fmt_mw(load_dis))
+            ok2.metric("T2m Disagreement", _fmt_mw(float(t2m_dis)) if t2m_dis is not None else "N/A")
+            ok3.metric("Attribution R²", _fmt_num(float(r2), 2) if r2 is not None else "N/A")
+            ok4, ok5 = st.columns(2)
+            ok4.metric("Peak Confidence", _fmt_pct(float(peak_conf)) if peak_conf is not None else "N/A")
+            ok5.metric("High Ops Risk Hours", str(high_ops))
+            if r2 is not None and not r2_reliable:
+                st.caption(
+                    f"⚠️ Indicative only — {n_samples} samples available. "
+                    f"Statistical reliability requires {MIN_SAMPLES_RELIABLE_R2}+. "
+                    "Use for direction, not precision."
+                )
 
             load_cons = p2["consensus_series_df"].copy()
             load_cons["target_timestamp"] = pd.to_datetime(load_cons["target_timestamp"])
@@ -1004,10 +1113,18 @@ def main() -> None:
                         use_container_width=True,
                         key=_chart_key(run_id, "ops_risk", "attribution_scatter", "attribution", primary_var),
                     )
+                    st.caption(
+                        "ΔLoad = load forecast change between consecutive runs "
+                        "(positive = revised upward, negative = revised downward). "
+                        "ΔT2m = temperature forecast change between the same runs. "
+                        f"Showing {len(rev)} revision pairs."
+                    )
                 st.subheader("Attribution Fit")
                 fit = p25["attribution_fit"]
                 a1, a2, a3, a4 = st.columns(4)
-                a1.metric("Model", str(fit.get("model", "Not available")))
+                _model_raw = str(fit.get("model", "N/A"))
+                _model_display = "Linear Reg." if "linear" in _model_raw.lower() else _model_raw[:12]
+                a1.metric("Model", _model_display)
                 a2.metric("Samples", str(fit.get("n_samples", "Not available")))
                 a3.metric("R²", _fmt_num(float(fit["r2"]), 2) if fit.get("r2") is not None else "Not available")
                 a4.metric("Vars Used", str(len(fit.get("vars_used", []))))
@@ -1069,18 +1186,30 @@ def main() -> None:
         briefing_md_path = Path(briefing_md_raw) if briefing_md_raw else None
         briefing_llm_md_path = Path(briefing_llm_md_raw) if briefing_llm_md_raw else None
 
+        briefing_payload: Dict[str, Any] = {}
         if briefing_json_path and briefing_json_path.is_file():
             briefing_payload = json.loads(briefing_json_path.read_text(encoding="utf-8"))
             c1, c2, c3, c4 = st.columns(4)
             c1.metric("Risk Level", str(briefing_payload.get("risk_level", "Not available")))
-            c2.metric("Forecast Stability", str(briefing_payload.get("forecast_stability_level", "Not available")))
+            b_stab_icon, b_stab_label = _stability_display(briefing_payload.get("forecast_stability_level", "UNKNOWN"))
+            b_stab_help = (
+                "Stability could not be assessed — load data unavailable for this run."
+                if str(briefing_payload.get("forecast_stability_level", "UNKNOWN")).strip().upper() == "UNKNOWN"
+                else None
+            )
+            c2.metric("Forecast Stability", f"{b_stab_icon} {b_stab_label}", help=b_stab_help)
             c3.metric("Peak Timing Agreement", str(briefing_payload.get("peak_timing_agreement", "Not available")))
             c4.metric("Actions", str(len(briefing_payload.get("recommended_actions", []))))
 
             st.subheader("Capacity Watchlist Hours")
             cap_rows = briefing_payload.get("capacity_watchlist_hours", []) or []
             if cap_rows:
-                st.dataframe(pd.DataFrame(cap_rows), use_container_width=True, hide_index=True)
+                _cap_df = pd.DataFrame(cap_rows)
+                _cap_display_cols = [c for c in ["time", "expected_load_mw", "exceedance_mw", "reason"] if c in _cap_df.columns]
+                _cap_df = _cap_df[_cap_display_cols] if _cap_display_cols else _cap_df
+                if "time" in _cap_df.columns:
+                    _cap_df["time"] = _cap_df["time"].map(_fmt_ts_short)
+                st.dataframe(_cap_df, use_container_width=True, hide_index=True)
             else:
                 st.info("No capacity watchlist hours available.")
 
@@ -1091,14 +1220,27 @@ def main() -> None:
                 if "expected_load_display" not in stab_df.columns:
                     stab_df["expected_load_display"] = "—"
                 stab_df["expected_load_display"] = stab_df["expected_load_display"].fillna("—")
-                cols = [c for c in ["time", "expected_load_display", "volatility_mw", "range_mw", "reason"] if c in stab_df.columns]
-                st.dataframe(stab_df[cols] if cols else stab_df, use_container_width=True, hide_index=True)
+                _stab_cols = [c for c in ["time", "expected_load_display", "volatility_mw", "range_mw", "reason"] if c in stab_df.columns]
+                stab_df = stab_df[_stab_cols] if _stab_cols else stab_df
+                if "time" in stab_df.columns:
+                    stab_df["time"] = stab_df["time"].map(_fmt_ts_short)
+                st.dataframe(stab_df, use_container_width=True, hide_index=True)
             else:
                 st.info("No stability watchlist hours available.")
 
             st.subheader("Recommended Actions")
             for a in briefing_payload.get("recommended_actions", []):
-                st.write(f"- `{a.get('priority')}` {a.get('title')}: {a.get('rationale')}")
+                priority = a.get("priority", "")
+                title = a.get("title", "")
+                step = a.get("recommended_next_step") or a.get("rationale", "")
+                priority_color = {"P0": "#b71c1c", "P1": "#e65100", "P2": "#1565c0"}.get(priority, "#37474f")
+                st.markdown(
+                    f"<div style='border-left:4px solid {priority_color};padding:0.4rem 0.75rem;"
+                    f"margin-bottom:0.5rem;background:rgba(0,0,0,0.15);border-radius:0 6px 6px 0;'>"
+                    f"<strong style='color:{priority_color};'>{priority}</strong>&nbsp;&nbsp;<strong>{title}</strong>"
+                    f"<br><span style='font-size:0.9em;color:#94a3b8;'>{step}</span></div>",
+                    unsafe_allow_html=True,
+                )
 
         show_md_path = briefing_llm_md_path if (use_llm and briefing_llm_md_path and briefing_llm_md_path.is_file()) else briefing_md_path
         if use_llm:
@@ -1123,7 +1265,13 @@ def main() -> None:
                 )
         if show_md_path and show_md_path.is_file():
             st.subheader("Briefing")
-            st.markdown(show_md_path.read_text(encoding="utf-8"))
+            _briefing_text = show_md_path.read_text(encoding="utf-8")
+            st.markdown(
+                f"<div style='overflow-x:auto;'>\n\n{_briefing_text}\n\n</div>",
+                unsafe_allow_html=True,
+            )
+            with st.expander("📄 View raw briefing data (JSON)", expanded=False):
+                st.json(briefing_payload)
 
         st.subheader("Downloads")
         if phase3_input_path and phase3_input_path.is_file():
@@ -1185,80 +1333,102 @@ def main() -> None:
         st.caption(f"Context: You are asking about run `{run_id}`.")
         if summary_path.exists():
             with st.expander("Simple Summary", expanded=False):
+                render_status_card(p4.get("facts_pack", {}))
                 st.markdown(summary_path.read_text(encoding="utf-8"))
 
+        if "chat_history" not in st.session_state:
+            st.session_state["chat_history"] = []
         if chat_key not in st.session_state:
             st.session_state[chat_key] = []
+        if not st.session_state["chat_history"] and st.session_state[chat_key]:
+            migrated = []
+            for m in st.session_state[chat_key]:
+                is_user = m.get("role") == "user"
+                migrated.append(
+                    {
+                        "is_user": is_user,
+                        "text": m.get("text", ""),
+                        "sources": m.get("sources", []),
+                        "status": m.get("status"),
+                        "tool_previews": m.get("tool_previews", []),
+                        "plan": m.get("plan", []),
+                    }
+                )
+            st.session_state["chat_history"] = migrated
 
-        history: list[dict[str, Any]] = st.session_state[chat_key]
-        user_count = sum(1 for m in history if m.get("role") == "user")
+        history: list[dict[str, Any]] = st.session_state["chat_history"]
+        user_count = sum(1 for m in history if m.get("is_user"))
         st.caption(f"Messages used: {user_count}/5")
 
         st.markdown("### Forecast Assistant")
         st.markdown("<div class='muted-note'>Ask plain-language questions and get answers backed by saved artifacts.</div>", unsafe_allow_html=True)
         chat_box = st.container()
         with chat_box:
-            for msg in history:
-                role = msg.get("role", "assistant")
-                with st.chat_message("user" if role == "user" else "assistant"):
-                    st.markdown(msg.get("text", ""))
-                    if role == "assistant" and msg.get("sources"):
-                        with st.expander("Sources", expanded=False):
-                            src_df = pd.DataFrame(msg.get("sources", []))
-                            if not src_df.empty:
-                                st.dataframe(src_df, use_container_width=True, hide_index=True)
-                    previews = msg.get("tool_previews", []) if role == "assistant" else []
-                    for i, tp in enumerate(previews):
-                        with st.expander(f"Tool Preview: {tp.get('tool_name', f'tool_{i}')}", expanded=False):
-                            if tp.get("errors"):
-                                st.warning("; ".join(tp.get("errors", [])))
-                            st.markdown(tp.get("preview_markdown", ""))
+            for msg in st.session_state.get("chat_history", []):
+                if msg.get("is_user"):
+                    with st.chat_message("user"):
+                        st.markdown(msg.get("text", ""))
+                else:
+                    with st.chat_message("assistant", avatar="⚡"):
+                        st.markdown(msg.get("text", ""))
+                        if msg.get("sources"):
+                            with st.expander("Sources", expanded=False):
+                                src_df = pd.DataFrame(msg.get("sources", []))
+                                if not src_df.empty:
+                                    st.dataframe(src_df, use_container_width=True, hide_index=True)
+                        previews = msg.get("tool_previews", [])
+                        for i, tp in enumerate(previews):
+                            tool_label = tp.get("tool_name", f"tool_{i}")
+                            with st.expander(f"Tool: {tool_label}", expanded=False):
+                                if tp.get("errors"):
+                                    st.warning("; ".join(tp.get("errors", [])))
+                                st.markdown(tp.get("preview_markdown", ""))
+                        if msg.get("plan"):
+                            with st.expander("Tools used", expanded=False):
+                                st.json(msg.get("plan", []))
 
         disabled = user_count >= 5
         if disabled:
             st.info("Message limit reached for this run (5). Clear chat to ask more.")
 
-        if st.session_state.get(clear_next_key, False):
-            st.session_state[ask_input_key] = ""
-            st.session_state[clear_next_key] = False
-
-        q = st.text_input(
-            "Your Question",
-            key=ask_input_key,
-            placeholder="Example: Why is risk severe? Is tomorrow stable? Which hours are most risky?",
-            disabled=disabled,
-        )
-        if q.strip():
-            with st.expander("Planned tools", expanded=False):
-                planned = plan_tools(q.strip(), allow_llm_fallback=False)
-                if planned:
-                    st.json(planned)
-                else:
-                    st.write("No deterministic tool route matched; planner fallback may be used.")
-        col_ask, col_clear = st.columns([1, 1])
-        with col_ask:
-            if st.button("Get Answer", key=f"send_{ask_input_key}", disabled=disabled or not q.strip()):
-                question = q.strip()
-                history.append({"role": "user", "text": question})
-                ans = answer_question(run_id, question)
-                history.append(
-                    {
-                        "role": "assistant",
-                        "text": ans.get("final_markdown", ""),
-                        "sources": ans.get("sources", []),
-                        "status": ans.get("status"),
-                        "tool_previews": ans.get("tool_results", []),
-                        "plan": ans.get("plan", []),
-                    }
-                )
-                st.session_state[chat_key] = history
-                st.session_state[clear_next_key] = True
-                st.rerun()
-        with col_clear:
-            if st.button("Clear Chat", key=f"clear_{ask_input_key}"):
-                st.session_state[chat_key] = []
-                st.session_state[clear_next_key] = True
-                st.rerun()
+        q = st.chat_input("Ask about this forecast...", disabled=disabled)
+        if q and q.strip():
+            question = q.strip()
+            history.append({"is_user": True, "text": question})
+            st.session_state["chat_history"] = history
+            history_for_llm = []
+            for msg in st.session_state.get("chat_history", [])[:-1]:
+                role = "user" if msg.get("is_user") else "assistant"
+                history_for_llm.append({"role": role, "content": msg.get("text", "")})
+            ans = answer_question(run_id, question, chat_history=history_for_llm)
+            planned = ans.get("plan", [])
+            history.append(
+                {
+                    "is_user": False,
+                    "text": ans.get("final_markdown", ""),
+                    "sources": ans.get("sources", []),
+                    "status": ans.get("status"),
+                    "tool_previews": ans.get("tool_results", []),
+                    "plan": planned,
+                }
+            )
+            st.session_state["chat_history"] = history
+            st.session_state[chat_key] = [
+                {
+                    "role": "user" if m.get("is_user") else "assistant",
+                    "text": m.get("text", ""),
+                    "sources": m.get("sources", []),
+                    "status": m.get("status"),
+                    "tool_previews": m.get("tool_previews", []),
+                    "plan": m.get("plan", []),
+                }
+                for m in history
+            ]
+            st.rerun()
+        if st.button("Clear Chat", key=f"clear_{ask_input_key}"):
+            st.session_state["chat_history"] = []
+            st.session_state[chat_key] = []
+            st.rerun()
 
         st.subheader("Phase 4 Files")
         if facts_path.exists():

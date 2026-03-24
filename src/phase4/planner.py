@@ -83,8 +83,8 @@ def _llm_planner_fallback(question: str) -> list[dict[str, Any]]:
     try:
         text = llm_generate_text(
             prompt=prompt,
-            system="You are a tool planner. Output strict JSON only.",
-            model="llama-3.1-8b-instant",
+            system="You are a forecast tool planner. Output strict JSON only.",
+            model="llama-3.3-70b-versatile",
             temperature=0.0,
             max_tokens=300,
         ).strip()

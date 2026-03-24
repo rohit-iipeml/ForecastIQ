@@ -68,6 +68,9 @@ def build_facts_pack(run_id: str) -> dict[str, Any]:
         },
         "capacity_watchlist_hours": briefing.get("capacity_watchlist_hours", []) or [],
         "stability_watchlist_hours": briefing.get("stability_watchlist_hours", []) or [],
+        "ramp_risk": briefing.get("ramp_risk") or {},
+        "energy_at_risk_mwh": briefing.get("energy_at_risk_mwh", 0.0),
+        "backtest_quality": briefing.get("backtest_quality") or {},
         "metadata": {
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "source_files": {
@@ -85,21 +88,60 @@ def _fmt_mw(value: Any) -> str:
 
 def _deterministic_simple_summary(facts: dict[str, Any]) -> str:
     r2 = facts.get("weather", {}).get("attribution_r2")
+    def _fmt_mw_r(v: Any) -> str:
+        try:
+            return f"{float(v):.1f} MW"
+        except Exception:
+            return "NA"
+
+    def _fmt_peak_time(v: Any) -> str:
+        import pandas as pd
+        ts = pd.to_datetime(v, errors="coerce")
+        if pd.isna(ts):
+            return str(v) if v else "NA"
+        return ts.strftime("%b %d %H:%M")
+
     overall_lines = [
         f"Run {facts.get('run_id')} is classified as {facts.get('risk_level')} risk with {facts.get('forecast_stability_level')} forecast stability.",
-        f"Peak load is {_fmt_mw(facts.get('peak', {}).get('value_mw'))} at {facts.get('peak', {}).get('time')} against capacity {_fmt_mw(facts.get('peak', {}).get('capacity_mw'))}.",
-        f"Forecast is above capacity for {facts.get('capacity', {}).get('hours_above_capacity')} hour(s), with max exceedance {_fmt_mw(facts.get('peak', {}).get('max_exceedance_mw'))}.",
+        f"Peak load is {_fmt_mw_r(facts.get('peak', {}).get('value_mw'))} at {_fmt_peak_time(facts.get('peak', {}).get('time'))} against capacity {_fmt_mw_r(facts.get('peak', {}).get('capacity_mw'))}.",
+        f"Forecast is above capacity for {facts.get('capacity', {}).get('hours_above_capacity')} hour(s), with max exceedance {_fmt_mw_r(facts.get('peak', {}).get('max_exceedance_mw'))}.",
     ]
     if r2 is None:
         overall_lines.append("Weather impact could not be quantified for this run.")
     else:
-        overall_lines.append(f"Weather attribution_r2 is {r2} for this run.")
+        overall_lines.append(f"Weather attribution R² is {float(r2):.2f} for this run.")
+
+    ramp = facts.get("ramp_risk") or {}
+    if ramp.get("ramp_risk_flag"):
+        overall_lines.append(
+            f"High ramp rate detected: up to {ramp.get('max_ramp_up_mw', 0):.1f} MW/h rise, "
+            f"{ramp.get('max_ramp_down_mw', 0):.1f} MW/h drop."
+        )
+    ear_mwh = float(facts.get("energy_at_risk_mwh") or 0)
+    if ear_mwh > 0:
+        overall_lines.append(f"Energy-at-risk above capacity: {ear_mwh:.1f} MWh.")
+    bt = facts.get("backtest_quality") or {}
+    if bt.get("backtest_quality_flag") == "poor":
+        overall_lines.append(f"Recent model accuracy is POOR ({bt.get('note', '')})")
 
     meaning = [
         f"- Tomorrow has {facts.get('risk_level')} operational risk, so reserve and dispatch decisions should track watchlist hours closely.",
         f"- Forecast stability is {facts.get('forecast_stability_level')}, so updates may still shift load levels before delivery.",
         "- Operators should stay cautious around capacity-critical hours and revisit decisions at the next forecast update.",
     ]
+
+    def _r(v: Any, digits: int = 1) -> str:
+        try:
+            return f"{float(v):.{digits}f}"
+        except Exception:
+            return str(v) if v is not None else "—"
+
+    def _fmt_time(v: Any) -> str:
+        import pandas as pd
+        ts = pd.to_datetime(v, errors="coerce")
+        if pd.isna(ts):
+            return str(v) if v else "—"
+        return ts.strftime("%b %d %H:%M")
 
     cap_top = facts.get("capacity_watchlist_hours", [])[:3]
     stab_top = facts.get("stability_watchlist_hours", [])[:3]
@@ -108,7 +150,7 @@ def _deterministic_simple_summary(facts: dict[str, Any]) -> str:
     lines.append(f"# Simple Summary — Run {facts.get('run_id')}")
     lines.append("")
     lines.append("## 1. Overall Situation")
-    lines.extend([f"{x}" for x in overall_lines[:4]])
+    lines.extend([f"{x}" for x in overall_lines])
     lines.append("")
     lines.append("## 2. What This Means")
     lines.extend(meaning[:3])
@@ -117,15 +159,17 @@ def _deterministic_simple_summary(facts: dict[str, Any]) -> str:
     lines.append("Capacity watchlist (top 3):")
     for row in cap_top:
         lines.append(
-            f"- {row.get('time')}: expected {row.get('expected_load_mw')} MW, exceedance {row.get('exceedance_mw')} MW"
+            f"- {_fmt_time(row.get('time'))}: expected {_r(row.get('expected_load_mw'))} MW,"
+            f" exceedance {_r(row.get('exceedance_mw'))} MW"
         )
     if not cap_top:
         lines.append("- No capacity watchlist hours available.")
     lines.append("Stability watchlist (top 3):")
     for row in stab_top:
-        expected = row.get("expected_load_display") or (f"{float(row.get('expected_load_mw')):.1f} MW" if row.get("expected_load_mw") is not None else "—")
+        expected = row.get("expected_load_display") or (f"{_r(row.get('expected_load_mw'))} MW" if row.get("expected_load_mw") is not None else "—")
         lines.append(
-            f"- {row.get('time')}: expected {expected}, volatility {row.get('volatility_mw')} MW, range {row.get('range_mw')} MW"
+            f"- {_fmt_time(row.get('time'))}: expected {expected},"
+            f" volatility {_r(row.get('volatility_mw'))} MW, range {_r(row.get('range_mw'))} MW"
         )
     if not stab_top:
         lines.append("- No stability watchlist hours available.")
@@ -166,23 +210,27 @@ def generate_simple_summary(run_id: str, facts: dict[str, Any], use_llm: bool = 
             llm_text = llm_generate_text(
                 prompt=prompt,
                 system=(
-                    "You rewrite operational forecast summaries. Use only facts provided. "
-                    "Never invent numbers or metrics."
+                    "You are a power grid shift briefing assistant.\n"
+                    "Write for both operators and managers — clear, confident, human.\n"
+                    "Use short sentences. Lead with what matters most (risk level, peak load, key concern).\n"
+                    "Never invent numbers. Use only the facts provided. Round naturally in prose.\n"
+                    "Output clean markdown with no code fences."
                 ),
-                model="llama-3.1-8b-instant",
+                model="llama-3.3-70b-versatile",
                 temperature=0.1,
-                max_tokens=500,
+                max_tokens=800,
             ).strip()
             if _has_new_numbers(llm_text, allowed):
                 # one retry
                 llm_text = llm_generate_text(
                     prompt=prompt,
                     system=(
-                        "STRICT: never add numbers outside JSON. If uncertain, omit."
+                        "Rewrite the forecast summary in plain, confident English for grid operators and managers.\n"
+                        "Use only the numbers already present. Do not add any new figures."
                     ),
-                    model="llama-3.1-8b-instant",
+                    model="llama-3.3-70b-versatile",
                     temperature=0.0,
-                    max_tokens=500,
+                    max_tokens=800,
                 ).strip()
             if _has_new_numbers(llm_text, allowed):
                 llm_status = "fallback"

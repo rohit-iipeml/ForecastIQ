@@ -11,7 +11,7 @@ from groq import Groq
 def llm_generate_text(
     prompt: str,
     system: Optional[str] = None,
-    model: str = "llama-3.1-8b-instant",
+    model: str = "llama-3.3-70b-versatile",
     temperature: float = 0.2,
     max_tokens: int = 800,
 ) -> str:
