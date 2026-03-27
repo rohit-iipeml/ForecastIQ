@@ -286,12 +286,52 @@ def _write_json(path: Path, payload: Dict[str, Any]) -> None:
 def run_for_date(date_str: str, init_hh: str = "00", config_path: Optional[str] = None) -> Dict[str, Any]:
     cfg = load_config(config_path)
     target_day = _validate_date(date_str, cfg)
-    paths = _build_paths(cfg, init_hh)
     horizon_hours = int(cfg.get("horizon_hours", 90))
     variables_to_plot = list(cfg.get("variables_to_plot", ["T2m", "Td2m", "RH2m"]))
 
     init_time = target_day.replace(hour=int(init_hh))
     run_id = init_time.strftime("%Y%m%d%H")
+
+    # Resolve runs_dir without validating data files — safe on read-only deployments.
+    runs_dir = _resolve_path(cfg["paths"]["runs_dir"])
+    run_dir = runs_dir / run_id
+    forecast_csv = run_dir / "forecast.csv"
+    metrics_path = run_dir / "metrics.json"
+
+    # Cache-first path: all artifacts already on disk — skip data-file validation entirely.
+    if forecast_csv.exists() and metrics_path.exists():
+        forecast_df = _parse_forecast_csv(forecast_csv, init_time)
+        with metrics_path.open(encoding="utf-8") as _f:
+            metrics = json.load(_f)
+
+        weather_csv = run_dir / "weather_window.csv"
+        weather_df = pd.read_csv(weather_csv) if weather_csv.exists() else pd.DataFrame()
+
+        backtest_csv = run_dir / "backtest_last_available.csv"
+        backtest_df = pd.read_csv(backtest_csv) if backtest_csv.exists() else None
+
+        outputs_dir = _resolve_path(cfg["paths"]["outputs_dir"])
+        return {
+            "run_id": run_id,
+            "cached": True,
+            "init_time": init_time.isoformat(),
+            "metrics": metrics,
+            "forecast_df": forecast_df,
+            "weather_df": weather_df,
+            "backtest_df": backtest_df,
+            "run_dir": str(run_dir),
+            "files": {
+                "forecast_csv": str(forecast_csv),
+                "forecast_source_csv": str(outputs_dir / f"forecast_{run_id}.csv"),
+                "metrics_json": str(metrics_path),
+                "forecast_json": str(run_dir / "forecast.json"),
+                "weather_window_csv": str(weather_csv) if weather_csv.exists() else None,
+                "backtest_last_available_csv": str(backtest_csv) if backtest_csv.exists() else None,
+            },
+        }
+
+    # Fresh run needed — now validate data files exist.
+    paths = _build_paths(cfg, init_hh)
     forecast_src = _forecast_file_path(paths.outputs_dir, init_time)
     from_cache = forecast_src.exists()
 
@@ -322,9 +362,7 @@ def run_for_date(date_str: str, init_hh: str = "00", config_path: Optional[str] 
             "The pipeline did not produce the expected CSV."
         )
 
-    run_dir = paths.runs_dir / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
-    forecast_csv = run_dir / "forecast.csv"
     shutil.copy2(forecast_src, forecast_csv)
 
     forecast_df = _parse_forecast_csv(forecast_csv, init_time)
@@ -354,7 +392,6 @@ def run_for_date(date_str: str, init_hh: str = "00", config_path: Optional[str] 
     if backtest_summary is not None:
         metrics["yesterday_performance"] = backtest_summary
 
-    metrics_path = run_dir / "metrics.json"
     _write_json(metrics_path, metrics)
 
     forecast_payload = {
@@ -375,7 +412,7 @@ def run_for_date(date_str: str, init_hh: str = "00", config_path: Optional[str] 
             "forecast_source_csv": str(forecast_src),
             "metrics_json": str(metrics_path),
             "forecast_json": str(run_dir / "forecast.json"),
-            "weather_window_csv": str(weather_csv) if weather_df is not None else None,
+            "weather_window_csv": str(weather_csv) if not weather_df.empty else None,
             "backtest_last_available_csv": str(backtest_csv)
             if backtest_df is not None and not backtest_df.empty
             else None,
