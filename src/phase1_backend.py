@@ -451,14 +451,20 @@ def get_recent_reality_windows(
     """
     cfg = load_config(config_path)
     target_day = _validate_date(date_str, cfg)
-    paths = _build_paths(cfg, init_hh)
     current_init_time = target_day.replace(hour=int(init_hh))
 
-    actuals = _load_actuals_until(
-        history_csv=paths.history_csv,
-        load_daily_dir=paths.load_daily_dir,
-        cutoff_time=current_init_time,
-    )
+    # Try to load actuals; on read-only deployments data files may be absent.
+    try:
+        paths = _build_paths(cfg, init_hh)
+        actuals = _load_actuals_until(
+            history_csv=paths.history_csv,
+            load_daily_dir=paths.load_daily_dir,
+            cutoff_time=current_init_time,
+        )
+        outputs_dir = paths.outputs_dir
+    except FileNotFoundError:
+        actuals = pd.DataFrame(columns=["timestamp", "actual_load"])
+        outputs_dir = _resolve_path(cfg["paths"]["outputs_dir"])
 
     rows: list[pd.DataFrame] = []
     min_day = pd.to_datetime(cfg["allowed_date_min"]).normalize()
@@ -466,7 +472,7 @@ def get_recent_reality_windows(
         prior_init = current_init_time - pd.Timedelta(days=offset)
         if prior_init.normalize() < min_day:
             continue
-        forecast_path = _forecast_file_path(paths.outputs_dir, prior_init)
+        forecast_path = _forecast_file_path(outputs_dir, prior_init)
         if not forecast_path.exists():
             continue
         prior_df = _parse_forecast_csv(forecast_path, prior_init)
