@@ -665,6 +665,28 @@ def generate_phase3_outputs(
     }
     _write_json(p_summary, summary)
     summary["files"]["phase3_summary_json"] = str(p_summary)
+
+    # Auto-store briefing in RAG knowledge base
+    try:
+        from src.rag_store import RAGStore
+        _rag = RAGStore()
+        _total_runs = _rag.add_briefing(
+            run_id,
+            p_md.read_text(encoding="utf-8"),
+            {
+                "run_id": run_id,
+                "risk_level": briefing.get("risk_level", ""),
+                "init_time": phase3_input.get("init_time", ""),
+                "timestamp": pd.Timestamp.now("UTC").isoformat(),
+            },
+        )
+        _rag_stored = True
+        _rag_total_runs = _total_runs
+    except Exception as _rag_exc:
+        _rag_stored = False
+        _rag_total_runs = 0
+        _rag_error = str(_rag_exc)
+
     out = {
         "run_id": run_id,
         "cached": False,
@@ -673,6 +695,8 @@ def generate_phase3_outputs(
         "forecast_stability_level": briefing.get("forecast_stability_level"),
         "peak_timing_agreement": briefing.get("peak_timing_agreement"),
         "files": summary["files"],
+        "rag_stored": _rag_stored,
+        "rag_total_runs": _rag_total_runs,
     }
     if use_llm_writer:
         llm = generate_briefing_llm_md(run_id, force=force)

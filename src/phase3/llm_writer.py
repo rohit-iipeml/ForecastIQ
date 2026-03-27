@@ -50,20 +50,30 @@ def _extract_numeric_tokens(text: str) -> set[str]:
 def _has_new_numbers(output_text: str, allowed_sources_text: str) -> bool:
     out_nums = _extract_numeric_tokens(output_text)
     allowed = _extract_numeric_tokens(allowed_sources_text)
-    return not out_nums.issubset(allowed)
+    # Also permit rounded versions of every source float — the LLM is instructed
+    # to "round numbers naturally in prose", so 364.1→"364", 342.7→"343" is fine.
+    rounded: set[str] = set()
+    for tok in allowed:
+        try:
+            v = float(tok)
+            rounded.add(str(int(v)))           # floor  e.g. 35.1 → "35"
+            rounded.add(str(int(round(v))))    # round  e.g. 342.7 → "343"
+            rounded.add(str(int(v) + 1))       # ceil   e.g. 35.1 → "36"
+        except (ValueError, OverflowError):
+            pass
+    return not out_nums.issubset(allowed | rounded)
 
 
 def _has_required_sections(md_text: str) -> bool:
+    """Check that the LLM output contains the sections defined in briefing_writer.md."""
     lower = md_text.lower()
     required = [
-        "operational takeaway",
-        "executive summary",
-        "peak and capacity",
-        "forecast stability",
-        "weather impact",
-        "watchlist hours",
+        "situation summary",
+        "what to watch",
+        "forecast confidence",
+        "ramp risk",
+        "backtest quality",
         "recommended actions",
-        "notes",
     ]
     return all(r in lower for r in required)
 

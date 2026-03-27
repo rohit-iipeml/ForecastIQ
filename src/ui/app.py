@@ -1172,7 +1172,10 @@ def main() -> None:
                 st.session_state[p3_key] = generate_phase3_outputs(run_id, force=False, use_llm_writer=use_llm)
                 st.session_state[p3_last_mode_key] = use_llm
 
+        # RAG knowledge base confirmation
         p3 = st.session_state[p3_key]
+        if p3.get("rag_stored"):
+            st.success(f"Briefing saved to knowledge base. Total stored: {p3.get('rag_total_runs', '?')} run(s).")
         p3_files = p3.get("files", {})
         briefing_json_raw = p3_files.get("briefing_json")
         actions_json_raw = p3_files.get("action_items_json")
@@ -1189,6 +1192,32 @@ def main() -> None:
         briefing_payload: Dict[str, Any] = {}
         if briefing_json_path and briefing_json_path.is_file():
             briefing_payload = json.loads(briefing_json_path.read_text(encoding="utf-8"))
+
+            # ── Metadata strip ─────────────────────────────────────────────
+            _b_init = briefing_payload.get("init_time", phase3_input_raw or run_id)
+            _b_horizon = briefing_payload.get("horizon_hours", 90)
+            _b_grade = briefing_payload.get("confidence_grade", "—")
+            st.markdown(
+                f"<div style='font-size:0.82rem;color:#94a3b8;padding:0.3rem 0 0.6rem 0;border-bottom:1px solid rgba(148,163,184,0.2);margin-bottom:0.75rem;'>"
+                f"Run&nbsp;<code>{run_id}</code>&nbsp;|&nbsp;Init&nbsp;<strong>{loaded_init.strftime('%Y-%m-%d %H:%M UTC')}</strong>"
+                f"&nbsp;|&nbsp;Horizon&nbsp;<strong>{_b_horizon}h</strong>"
+                f"&nbsp;|&nbsp;Confidence&nbsp;Grade&nbsp;<strong>{_b_grade}</strong>"
+                f"&nbsp;|&nbsp;Model&nbsp;LightGBM</div>",
+                unsafe_allow_html=True,
+            )
+
+            # ── Risk badge ─────────────────────────────────────────────────
+            _risk = briefing_payload.get("risk_level", "")
+            _risk_tier_label = {"SEVERE": "CRITICAL", "HIGH": "HIGH", "MEDIUM": "ELEVATED", "LOW": "NORMAL"}.get(_risk, _risk)
+            if _risk in ("SEVERE",):
+                st.error(f"**Risk Tier: {_risk_tier_label}** ({_risk})")
+            elif _risk == "HIGH":
+                st.warning(f"**Risk Tier: {_risk_tier_label}**")
+            elif _risk == "MEDIUM":
+                st.info(f"**Risk Tier: {_risk_tier_label}**")
+            else:
+                st.success(f"**Risk Tier: {_risk_tier_label}**")
+
             c1, c2, c3, c4 = st.columns(4)
             c1.metric("Risk Level", str(briefing_payload.get("risk_level", "Not available")))
             b_stab_icon, b_stab_label = _stability_display(briefing_payload.get("forecast_stability_level", "UNKNOWN"))
@@ -1318,6 +1347,12 @@ def main() -> None:
         chat_key = f"phase4_chat::{loaded_date_str}::{loaded_hour}"
         ask_input_key = f"phase4_ask_input::{loaded_date_str}::{loaded_hour}"
         clear_next_key = f"{ask_input_key}__clear_next"
+        lc_memory_key = f"lc_memory::{loaded_date_str}::{loaded_hour}"
+
+        # LangChain ChatMessageHistory — persists across turns in session state
+        if lc_memory_key not in st.session_state:
+            from langchain_community.chat_message_histories import ChatMessageHistory
+            st.session_state[lc_memory_key] = ChatMessageHistory()
 
         if p4_key not in st.session_state:
             with st.spinner("Preparing Phase 4 facts and summary..."):
@@ -1326,11 +1361,27 @@ def main() -> None:
         p4 = st.session_state[p4_key]
         facts_path = Path(p4["files"]["facts_pack_json"])
         summary_path = Path(p4["files"]["simple_summary_md"])
+        st.markdown("### Forecast Assistant")
         st.markdown(
-            "<span style='background:#e3f2fd;color:#0d47a1;padding:4px 8px;border-radius:6px;font-size:0.9em;'>Answers are based on saved forecast data.</span>",
+            "<div class='muted-note'>Ask plain-language questions backed by saved forecast artifacts and historical briefings.</div>",
             unsafe_allow_html=True,
         )
-        st.caption(f"Context: You are asking about run `{run_id}`.")
+
+        # ── RAG knowledge base status ───────────────────────────────────────
+        _rag_kb_info = ""
+        try:
+            from src.rag_store import RAGStore
+            _rag = RAGStore()
+            _n_runs = _rag.count_runs()
+            if _n_runs > 0:
+                _rag_kb_info = f"Knowledge base: **{_n_runs}** past briefing(s) indexed ({_rag.count()} chunks) — historical context is active."
+            else:
+                _rag_kb_info = "Knowledge base: empty — run Phase 3 on any forecast to enable historical context."
+        except Exception:
+            pass
+        if _rag_kb_info:
+            st.caption(_rag_kb_info)
+
         if summary_path.exists():
             with st.expander("Simple Summary", expanded=False):
                 render_status_card(p4.get("facts_pack", {}))
@@ -1352,16 +1403,32 @@ def main() -> None:
                         "status": m.get("status"),
                         "tool_previews": m.get("tool_previews", []),
                         "plan": m.get("plan", []),
+                        "rag_run_ids": m.get("rag_run_ids", []),
                     }
                 )
             st.session_state["chat_history"] = migrated
 
         history: list[dict[str, Any]] = st.session_state["chat_history"]
         user_count = sum(1 for m in history if m.get("is_user"))
-        st.caption(f"Messages used: {user_count}/5")
 
-        st.markdown("### Forecast Assistant")
-        st.markdown("<div class='muted-note'>Ask plain-language questions and get answers backed by saved artifacts.</div>", unsafe_allow_html=True)
+        # ── Starter question chips ──────────────────────────────────────────
+        chip_key = f"chip_question::{loaded_date_str}::{loaded_hour}"
+        if not history:
+            st.markdown("**Quick questions:**")
+            _starter_qs = [
+                "What is the peak demand forecast and when does it occur?",
+                "What is the current risk level and why?",
+                "Which hours have the highest forecast uncertainty?",
+                "What actions should the operator take in the next 6 hours?",
+                "How does today's forecast compare to historical patterns?",
+                "What is driving load above normal today?",
+            ]
+            _chip_cols = st.columns(3)
+            for _ci, _sq in enumerate(_starter_qs):
+                if _chip_cols[_ci % 3].button(_sq, key=f"chip_{_ci}_{loaded_date_str}", use_container_width=True):
+                    st.session_state[chip_key] = _sq
+
+        # ── Chat messages ───────────────────────────────────────────────────
         chat_box = st.container()
         with chat_box:
             for msg in st.session_state.get("chat_history", []):
@@ -1371,6 +1438,9 @@ def main() -> None:
                 else:
                     with st.chat_message("assistant", avatar="⚡"):
                         st.markdown(msg.get("text", ""))
+                        _r_ids = msg.get("rag_run_ids", [])
+                        if _r_ids:
+                            st.caption(f"Historical context from run(s): {', '.join(_r_ids)}")
                         if msg.get("sources"):
                             with st.expander("Sources", expanded=False):
                                 src_df = pd.DataFrame(msg.get("sources", []))
@@ -1387,20 +1457,31 @@ def main() -> None:
                             with st.expander("Tools used", expanded=False):
                                 st.json(msg.get("plan", []))
 
-        disabled = user_count >= 5
+        # ── Input handling ──────────────────────────────────────────────────
+        disabled = user_count >= 20
         if disabled:
-            st.info("Message limit reached for this run (5). Clear chat to ask more.")
+            st.info("Message limit reached for this session (20). Clear chat to continue.")
+
+        # Consume chip question if set
+        _chip_q = st.session_state.pop(chip_key, None)
 
         q = st.chat_input("Ask about this forecast...", disabled=disabled)
-        if q and q.strip():
-            question = q.strip()
+        question_to_ask = (_chip_q or (q.strip() if q and q.strip() else None))
+
+        if question_to_ask:
+            question = question_to_ask
             history.append({"is_user": True, "text": question})
             st.session_state["chat_history"] = history
+
             history_for_llm = []
             for msg in st.session_state.get("chat_history", [])[:-1]:
                 role = "user" if msg.get("is_user") else "assistant"
                 history_for_llm.append({"role": role, "content": msg.get("text", "")})
-            ans = answer_question(run_id, question, chat_history=history_for_llm)
+
+            with st.spinner("Retrieving historical context and generating answer..."):
+                ans = answer_question(run_id, question, chat_history=history_for_llm, lc_memory=st.session_state[lc_memory_key])
+
+            _rag_run_ids = ans.get("rag_retrieved_run_ids", [])
             planned = ans.get("plan", [])
             history.append(
                 {
@@ -1410,6 +1491,7 @@ def main() -> None:
                     "status": ans.get("status"),
                     "tool_previews": ans.get("tool_results", []),
                     "plan": planned,
+                    "rag_run_ids": _rag_run_ids,
                 }
             )
             st.session_state["chat_history"] = history
@@ -1421,13 +1503,17 @@ def main() -> None:
                     "status": m.get("status"),
                     "tool_previews": m.get("tool_previews", []),
                     "plan": m.get("plan", []),
+                    "rag_run_ids": m.get("rag_run_ids", []),
                 }
                 for m in history
             ]
             st.rerun()
+
         if st.button("Clear Chat", key=f"clear_{ask_input_key}"):
             st.session_state["chat_history"] = []
             st.session_state[chat_key] = []
+            from langchain_community.chat_message_histories import ChatMessageHistory
+            st.session_state[lc_memory_key] = ChatMessageHistory()
             st.rerun()
 
         st.subheader("Phase 4 Files")

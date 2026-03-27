@@ -40,34 +40,65 @@ def build_facts_pack(run_id: str) -> dict[str, Any]:
     p2 = phase3_input.get("phase2", {})
     weather = briefing.get("weather_load_link", {})
 
+    p1 = phase3_input.get("phase1", {})
+
+    # Human-readable recommended actions for chatbot grounding
+    raw_actions = briefing.get("recommended_actions", []) or []
+    readable_actions = [
+        {
+            "id": a.get("id", ""),
+            "priority": a.get("priority", ""),
+            "title": a.get("title", ""),
+            "recommended_next_step": a.get("recommended_next_step", ""),
+            "rationale": a.get("rationale", ""),
+        }
+        for a in raw_actions
+    ]
+
     facts = {
         "run_id": run_id,
         "init_time": phase3_input.get("init_time"),
+        "horizon_hours": phase3_input.get("horizon_hours", 90),
         "risk_level": briefing.get("risk_level"),
         "forecast_stability_level": briefing.get("forecast_stability_level"),
+        "stability_label": briefing.get("forecast_stability_level", "").replace("_", " ").title(),
         "peak_timing_agreement": briefing.get("peak_timing_agreement"),
+        "confidence_grade": briefing.get("confidence_grade"),
+        "confidence_reasons": briefing.get("confidence_reasons", []),
+        "peak_mw": briefing.get("peak", {}).get("value_mw"),
+        "peak_time": briefing.get("peak", {}).get("time"),
         "peak": {
             "time": briefing.get("peak", {}).get("time"),
             "value_mw": briefing.get("peak", {}).get("value_mw"),
             "capacity_mw": briefing.get("capacity", {}).get("capacity_mw"),
             "max_exceedance_mw": briefing.get("capacity", {}).get("max_exceedance_mw"),
         },
+        "capacity_mw": briefing.get("capacity", {}).get("capacity_mw"),
+        "exceedance_hours": briefing.get("capacity", {}).get("hours_above_capacity"),
+        "max_exceedance_mw": briefing.get("capacity", {}).get("max_exceedance_mw"),
         "capacity": {
             "hours_above_capacity": briefing.get("capacity", {}).get("hours_above_capacity"),
             "exceedance_hours_majority": p2.get("exceedance_hours_majority"),
         },
+        "avg_load_mw": p1.get("avg_predicted_load_mw") or p2.get("median_load_mw"),
         "stability": {
             "disagreement_index": briefing.get("stability", {}).get("disagreement_index"),
             "avg_revision_volatility": p2.get("avg_revision_volatility"),
             "max_range_mw": briefing.get("stability", {}).get("max_range_mw"),
+            "peak_confidence": briefing.get("stability", {}).get("peak_confidence"),
+            "peak_time_spread_hours": briefing.get("stability", {}).get("peak_time_spread_hours"),
         },
+        "attribution_r2": weather.get("attribution_r2"),
         "weather": {
             "attribution_r2": weather.get("attribution_r2"),
             "top_variable": weather.get("top_driver_var"),
             "correlation": weather.get("top_driver_corr"),
+            "r2_reliable": weather.get("r2_reliable"),
+            "n_samples": weather.get("n_samples"),
         },
         "capacity_watchlist_hours": briefing.get("capacity_watchlist_hours", []) or [],
         "stability_watchlist_hours": briefing.get("stability_watchlist_hours", []) or [],
+        "recommended_actions": readable_actions,
         "ramp_risk": briefing.get("ramp_risk") or {},
         "energy_at_risk_mwh": briefing.get("energy_at_risk_mwh", 0.0),
         "backtest_quality": briefing.get("backtest_quality") or {},
