@@ -1,0 +1,29 @@
+{
+  "tool_name": "tool_weather_at_times",
+  "run_id": "2025012500",
+  "args": {
+    "timestamps_source_csv": "outputs/runs/2025012500/phase4/tools/exceedance_hours.csv",
+    "vars": [
+      "T2m"
+    ]
+  },
+  "args_hash": "964dd728f0957448",
+  "created_at": "2026-02-13T23:23:53.878089+00:00",
+  "created_paths": {
+    "exceedance_weather_csv": "outputs/runs/2025012500/phase4/tools/exceedance_weather.csv",
+    "summary_json": "outputs/runs/2025012500/phase4/tools/exceedance_weather_summary.json"
+  },
+  "summary": {
+    "row_count": 3,
+    "requested_vars": [
+      "T2m"
+    ],
+    "weather_sources": {
+      "T2m": "outputs/runs/2025012500/phase25/weather_consensus_T2m.csv"
+    },
+    "timestamp_source": "outputs/runs/2025012500/phase4/tools/exceedance_hours.csv",
+    "missing_var_count": 0
+  },
+  "preview_markdown": "| timestamp | load_mw | exceedance_mw | T2m |\n|---|---|---|---|\n| 2025-01-25 12:00:00 | 331.31 | 2.3100000000000023 | 272.124267578125 |\n| 2025-01-25 13:00:00 | 344.87 | 15.870000000000005 | 272.9690755208333 |\n| 2025-01-25 14:00:00 | 343.81 | 14.810000000000002 | 276.5624186197917 |",
+  "errors": []
+}

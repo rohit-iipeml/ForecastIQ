@@ -1,0 +1,5 @@
+{
+  "bins_with_data": 3,
+  "total_points": 144,
+  "realtime_cut_rule": "actuals used only for timestamps < target_day 00:00"
+}

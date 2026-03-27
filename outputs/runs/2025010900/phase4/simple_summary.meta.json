@@ -1,0 +1,5 @@
+{
+  "status": "fallback",
+  "reason": "llm_error: Groq text generation failed: Connection error.",
+  "generated_at": "2026-02-13T22:58:03.628897+00:00"
+}

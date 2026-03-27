@@ -1,0 +1,17 @@
+{
+  "avg_predicted_load_mw": 279.3696703296704,
+  "max_predicted_load_mw": 353.63,
+  "max_predicted_load_ts": "2025-01-22T14:00:00",
+  "min_predicted_load_mw": 220.64,
+  "min_predicted_load_ts": "2025-01-21T21:00:00",
+  "total_energy_proxy_mwh": 25422.640000000003,
+  "capacity_mw": 329.0,
+  "hours_above_capacity": 8,
+  "max_exceedance_mw": 24.629999999999995,
+  "yesterday_performance": {
+    "realized_points": 24,
+    "mae_mw": 9.96208333333333,
+    "bias_mw": -9.776249999999997,
+    "prev_init_time": "2025-01-20T00:00:00"
+  }
+}

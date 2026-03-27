@@ -1,0 +1,13 @@
+{
+  "run_id": "2025011600",
+  "confidence_grade": "C",
+  "risk_level": "LOW",
+  "forecast_stability_level": "HIGHLY_UNSTABLE",
+  "peak_timing_agreement": "STRONG",
+  "files": {
+    "phase3_input_json": "outputs/runs/2025011600/phase3/phase3_input.json",
+    "briefing_json": "outputs/runs/2025011600/phase3/briefing.json",
+    "action_items_json": "outputs/runs/2025011600/phase3/action_items.json",
+    "briefing_md": "outputs/runs/2025011600/phase3/briefing.md"
+  }
+}

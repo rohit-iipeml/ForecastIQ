@@ -1,0 +1,21 @@
+{
+  "tool_name": "tool_exceedance_hours",
+  "run_id": "2025012500",
+  "args": {},
+  "args_hash": "44136fa355b3678a",
+  "created_at": "2026-02-13T23:23:53.866518+00:00",
+  "created_paths": {
+    "exceedance_hours_csv": "outputs/runs/2025012500/phase4/tools/exceedance_hours.csv",
+    "summary_json": "outputs/runs/2025012500/phase4/tools/exceedance_hours_summary.json"
+  },
+  "summary": {
+    "exceedance_hours_count": 3,
+    "max_exceedance_mw": 15.870000000000005,
+    "first_exceedance_time": "2025-01-25T12:00:00",
+    "last_exceedance_time": "2025-01-25T14:00:00",
+    "capacity_mw": 329.0,
+    "load_source": "outputs/runs/2025012500/phase2/consensus_series.csv"
+  },
+  "preview_markdown": "| timestamp | load_mw | capacity_mw | exceedance_mw |\n|---|---|---|---|\n| 2025-01-25 12:00:00 | 331.31 | 329.0 | 2.3100000000000023 |\n| 2025-01-25 13:00:00 | 344.87 | 329.0 | 15.870000000000005 |\n| 2025-01-25 14:00:00 | 343.81 | 329.0 | 14.810000000000002 |",
+  "errors": []
+}

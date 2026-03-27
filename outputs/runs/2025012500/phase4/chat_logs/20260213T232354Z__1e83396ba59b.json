@@ -1,0 +1,102 @@
+{
+  "run_id": "2025012500",
+  "question": "WHat are the forecasted temperature at times when forecasted lad is above capacity?",
+  "plan": [
+    {
+      "tool": "tool_exceedance_hours",
+      "args": {}
+    },
+    {
+      "tool": "tool_weather_at_times",
+      "args": {
+        "timestamps_source_csv": "outputs/runs/2025012500/phase4/tools/exceedance_hours.csv",
+        "vars": [
+          "T2m"
+        ]
+      }
+    }
+  ],
+  "tool_results": [
+    {
+      "tool_name": "tool_exceedance_hours",
+      "created_paths": {
+        "exceedance_hours_csv": "outputs/runs/2025012500/phase4/tools/exceedance_hours.csv",
+        "summary_json": "outputs/runs/2025012500/phase4/tools/exceedance_hours_summary.json"
+      },
+      "summary": {
+        "exceedance_hours_count": 3,
+        "max_exceedance_mw": 15.870000000000005,
+        "first_exceedance_time": "2025-01-25T12:00:00",
+        "last_exceedance_time": "2025-01-25T14:00:00",
+        "capacity_mw": 329.0,
+        "load_source": "outputs/runs/2025012500/phase2/consensus_series.csv"
+      },
+      "errors": []
+    },
+    {
+      "tool_name": "tool_weather_at_times",
+      "created_paths": {
+        "exceedance_weather_csv": "outputs/runs/2025012500/phase4/tools/exceedance_weather.csv",
+        "summary_json": "outputs/runs/2025012500/phase4/tools/exceedance_weather_summary.json"
+      },
+      "summary": {
+        "row_count": 3,
+        "requested_vars": [
+          "T2m"
+        ],
+        "weather_sources": {
+          "T2m": "outputs/runs/2025012500/phase25/weather_consensus_T2m.csv"
+        },
+        "timestamp_source": "outputs/runs/2025012500/phase4/tools/exceedance_hours.csv",
+        "missing_var_count": 0
+      },
+      "errors": []
+    }
+  ],
+  "execution_errors": [],
+  "final_markdown": "The forecasted temperature at times when forecasted load is above capacity is 272.124267578125 degrees at 12:00:00, 272.9690755208333 degrees at 13:00:00, and 276.5624186197917 degrees at 14:00:00.\n\nSources\n* outputs/runs/2025012500/phase4/facts_pack.json\n* outputs/runs/2025012500/phase4/tools/exceedance_hours.csv\n* outputs/runs/2025012500/phase25/weather_consensus_T2m.csv",
+  "sources": [
+    {
+      "path": "outputs/runs/2025012500/phase4/facts_pack.json",
+      "fields": [
+        "risk_level",
+        "forecast_stability_level",
+        "peak_timing_agreement",
+        "peak",
+        "capacity",
+        "stability",
+        "weather",
+        "capacity_watchlist_hours",
+        "stability_watchlist_hours"
+      ]
+    },
+    {
+      "path": "outputs/runs/2025012500/phase4/tools/exceedance_hours.csv",
+      "fields": [
+        "timestamp",
+        "load_mw",
+        "capacity_mw",
+        "exceedance_mw"
+      ]
+    },
+    {
+      "path": "outputs/runs/2025012500/phase4/tools/exceedance_hours_summary.json",
+      "fields": []
+    },
+    {
+      "path": "outputs/runs/2025012500/phase4/tools/exceedance_weather.csv",
+      "fields": [
+        "timestamp",
+        "load_mw",
+        "capacity_mw",
+        "exceedance_mw"
+      ]
+    },
+    {
+      "path": "outputs/runs/2025012500/phase4/tools/exceedance_weather_summary.json",
+      "fields": []
+    }
+  ],
+  "status": "ok",
+  "created_at": "2026-02-13T23:23:54.395696+00:00"
+}

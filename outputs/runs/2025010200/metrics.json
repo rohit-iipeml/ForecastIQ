@@ -1,0 +1,11 @@
+{
+  "avg_predicted_load_mw": 210.86582417582417,
+  "max_predicted_load_mw": 271.98,
+  "max_predicted_load_ts": "2025-01-03T14:00:00",
+  "min_predicted_load_mw": 163.83,
+  "min_predicted_load_ts": "2025-01-02T08:00:00",
+  "total_energy_proxy_mwh": 19188.79,
+  "capacity_mw": 329.0,
+  "hours_above_capacity": 0,
+  "max_exceedance_mw": 0.0
+}

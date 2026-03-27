@@ -1,0 +1,59 @@
+{
+  "run_id": "2025010900",
+  "question": "How unstable is this forecast?",
+  "plan": [
+    {
+      "tool": "tool_compare_revisions",
+      "args": {}
+    }
+  ],
+  "tool_results": [
+    {
+      "tool_name": "tool_compare_revisions",
+      "created_paths": {
+        "revision_extremes_csv": "outputs/runs/2025010900/phase4/tools/revision_extremes.csv",
+        "summary_json": "outputs/runs/2025010900/phase4/tools/revision_extremes_summary.json"
+      },
+      "summary": {
+        "max_range": 21.289999999999964,
+        "max_range_time": "2025-01-09T16:00:00",
+        "avg_revision_volatility": 5.216045034330757,
+        "source": "outputs/runs/2025010900/phase2/per_hour_metrics.csv"
+      },
+      "errors": []
+    }
+  ],
+  "execution_errors": [],
+  "final_markdown": "Max range is 21.289999999999964 at 2025-01-09T16:00:00; average revision volatility is 5.216045034330757.\n\n\nSources\n- outputs/runs/2025010900/phase4/facts_pack.json (fields: risk_level, forecast_stability_level, peak_timing_agreement, peak, capacity, stability, weather, capacity_watchlist_hours, stability_watchlist_hours)\n- outputs/runs/2025010900/phase4/tools/revision_extremes.csv (fields: timestamp, revision_volatility, range, consensus_median)\n- outputs/runs/2025010900/phase4/tools/revision_extremes_summary.json (fields: )\n",
+  "sources": [
+    {
+      "path": "outputs/runs/2025010900/phase4/facts_pack.json",
+      "fields": [
+        "risk_level",
+        "forecast_stability_level",
+        "peak_timing_agreement",
+        "peak",
+        "capacity",
+        "stability",
+        "weather",
+        "capacity_watchlist_hours",
+        "stability_watchlist_hours"
+      ]
+    },
+    {
+      "path": "outputs/runs/2025010900/phase4/tools/revision_extremes.csv",
+      "fields": [
+        "timestamp",
+        "revision_volatility",
+        "range",
+        "consensus_median"
+      ]
+    },
+    {
+      "path": "outputs/runs/2025010900/phase4/tools/revision_extremes_summary.json",
+      "fields": []
+    }
+  ],
+  "status": "ok",
+  "created_at": "2026-02-13T23:36:53.304760+00:00"
+}

@@ -1,0 +1,21 @@
+{
+  "tool_name": "tool_exceedance_hours",
+  "run_id": "2025011700",
+  "args": {},
+  "args_hash": "44136fa355b3678a",
+  "created_at": "2026-02-26T19:29:02.406468+00:00",
+  "created_paths": {
+    "exceedance_hours_csv": "outputs/runs/2025011700/phase4/tools/exceedance_hours.csv",
+    "summary_json": "outputs/runs/2025011700/phase4/tools/exceedance_hours_summary.json"
+  },
+  "summary": {
+    "exceedance_hours_count": 0,
+    "max_exceedance_mw": 0.0,
+    "first_exceedance_time": null,
+    "last_exceedance_time": null,
+    "capacity_mw": 329.0,
+    "load_source": "outputs/runs/2025011700/phase2/consensus_series.csv"
+  },
+  "preview_markdown": "No rows returned.",
+  "errors": []
+}

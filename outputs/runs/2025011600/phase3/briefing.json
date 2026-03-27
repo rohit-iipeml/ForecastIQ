@@ -1,0 +1,275 @@
+{
+  "run_id": "2025011600",
+  "risk_level": "LOW",
+  "forecast_stability_level": "HIGHLY_UNSTABLE",
+  "peak_timing_agreement": "STRONG",
+  "confidence_grade": "C",
+  "confidence_reasons": [
+    "Base grade from peak_confidence=1.00, disagreement_index=4.94, peak_time_spread_hours=0."
+  ],
+  "executive_summary": [
+    "Operational risk level is LOW. Forecast stability is HIGHLY_UNSTABLE, and peak timing agreement is STRONG.",
+    "Forecast peak is 283.1 MW at 2025-01-16T13:00:00.",
+    "Capacity is 329.0 MW with 0 forecast hour(s) above capacity.",
+    "Forecast variability across updates is 4.9 MW median spread.",
+    "Weather showed a 50% indicative association with forecast changes this run (R\u00b2 0.50, 19 samples \u2014 treat as directional only, not statistically definitive)."
+  ],
+  "peak": {
+    "time": "2025-01-16T13:00:00",
+    "value_mw": 283.1,
+    "exceeds_capacity": false,
+    "exceedance_mw": 0.0
+  },
+  "capacity": {
+    "capacity_mw": 329.0,
+    "hours_above_capacity": 0,
+    "max_exceedance_mw": 0.0
+  },
+  "stability": {
+    "disagreement_index": 4.944999999999993,
+    "peak_confidence": 1.0,
+    "peak_time_spread_hours": 0,
+    "max_range_mw": 15.519999999999982,
+    "max_range_time": "2025-01-16T11:00:00"
+  },
+  "weather_load_link": {
+    "attribution_r2": 0.5015677982956107,
+    "n_samples": 19,
+    "r2_reliable": false,
+    "r2_note": null,
+    "top_driver_var": "Td2m",
+    "top_driver_corr": -0.6935952988916152
+  },
+  "capacity_watchlist_hours": [
+    {
+      "time": "2025-01-16 13:00:00",
+      "expected_load_mw": 280.46,
+      "exceedance_mw": 0.0,
+      "reason": "High load watch (85%)",
+      "exceed_prob_proxy": 0.0
+    },
+    {
+      "time": "2025-01-16 14:00:00",
+      "expected_load_mw": 273.54,
+      "exceedance_mw": 0.0,
+      "reason": "High load watch (83%)",
+      "exceed_prob_proxy": 0.0
+    },
+    {
+      "time": "2025-01-16 12:00:00",
+      "expected_load_mw": 268.72,
+      "exceedance_mw": 0.0,
+      "reason": "High load watch (82%)",
+      "exceed_prob_proxy": 0.0
+    },
+    {
+      "time": "2025-01-16 15:00:00",
+      "expected_load_mw": 256.18,
+      "exceedance_mw": 0.0,
+      "reason": "High load watch (78%)",
+      "exceed_prob_proxy": 0.0
+    },
+    {
+      "time": "2025-01-16 02:00:00",
+      "expected_load_mw": 248.64,
+      "exceedance_mw": 0.0,
+      "reason": "High load watch (76%)",
+      "exceed_prob_proxy": 0.0
+    },
+    {
+      "time": "2025-01-16 01:00:00",
+      "expected_load_mw": 248.49,
+      "exceedance_mw": 0.0,
+      "reason": "High load watch (76%)",
+      "exceed_prob_proxy": 0.0
+    }
+  ],
+  "stability_watchlist_hours": [
+    {
+      "time": "2025-01-16 13:00:00",
+      "median_load_mw": 280.46,
+      "volatility_mw": 7.002520181255383,
+      "range_mw": 15.220000000000027,
+      "reason": "Forecast shifting across updates",
+      "expected_load_mw": 280.46,
+      "expected_load_display": "280.5 MW"
+    },
+    {
+      "time": "2025-01-16 12:00:00",
+      "median_load_mw": 268.72,
+      "volatility_mw": 6.836680481052198,
+      "range_mw": 15.450000000000015,
+      "reason": "Forecast shifting across updates",
+      "expected_load_mw": 268.72,
+      "expected_load_display": "268.7 MW"
+    },
+    {
+      "time": "2025-01-16 11:00:00",
+      "median_load_mw": 242.54,
+      "volatility_mw": 6.603960091406426,
+      "range_mw": 15.519999999999982,
+      "reason": "Forecast shifting across updates",
+      "expected_load_mw": 242.54,
+      "expected_load_display": "242.5 MW"
+    },
+    {
+      "time": "2025-01-16 10:00:00",
+      "median_load_mw": 224.0,
+      "volatility_mw": 5.627020131077875,
+      "range_mw": 12.660000000000023,
+      "reason": "Forecast shifting across updates",
+      "expected_load_mw": 224.0,
+      "expected_load_display": "224.0 MW"
+    },
+    {
+      "time": "2025-01-16 14:00:00",
+      "median_load_mw": 273.54,
+      "volatility_mw": 5.298735698258607,
+      "range_mw": 11.610000000000014,
+      "reason": "Forecast shifting across updates",
+      "expected_load_mw": 273.54,
+      "expected_load_display": "273.5 MW"
+    },
+    {
+      "time": "2025-01-16 09:00:00",
+      "median_load_mw": 213.15,
+      "volatility_mw": 4.772674535543168,
+      "range_mw": 10.599999999999994,
+      "reason": "Forecast shifting across updates",
+      "expected_load_mw": 213.15,
+      "expected_load_display": "213.2 MW"
+    }
+  ],
+  "watchlist_hours": [
+    {
+      "time": "2025-01-16 13:00:00",
+      "expected_load_mw": 280.46,
+      "exceedance_mw": 0.0,
+      "reason": "High load watch (85%)",
+      "exceed_prob_proxy": 0.0
+    },
+    {
+      "time": "2025-01-16 14:00:00",
+      "expected_load_mw": 273.54,
+      "exceedance_mw": 0.0,
+      "reason": "High load watch (83%)",
+      "exceed_prob_proxy": 0.0
+    },
+    {
+      "time": "2025-01-16 12:00:00",
+      "expected_load_mw": 268.72,
+      "exceedance_mw": 0.0,
+      "reason": "High load watch (82%)",
+      "exceed_prob_proxy": 0.0
+    },
+    {
+      "time": "2025-01-16 15:00:00",
+      "expected_load_mw": 256.18,
+      "exceedance_mw": 0.0,
+      "reason": "High load watch (78%)",
+      "exceed_prob_proxy": 0.0
+    },
+    {
+      "time": "2025-01-16 02:00:00",
+      "expected_load_mw": 248.64,
+      "exceedance_mw": 0.0,
+      "reason": "High load watch (76%)",
+      "exceed_prob_proxy": 0.0
+    },
+    {
+      "time": "2025-01-16 01:00:00",
+      "expected_load_mw": 248.49,
+      "exceedance_mw": 0.0,
+      "reason": "High load watch (76%)",
+      "exceed_prob_proxy": 0.0
+    },
+    {
+      "time": "2025-01-16 13:00:00",
+      "median_load_mw": 280.46,
+      "volatility_mw": 7.002520181255383,
+      "range_mw": 15.220000000000027,
+      "reason": "Forecast shifting across updates",
+      "expected_load_mw": 280.46,
+      "expected_load_display": "280.5 MW"
+    },
+    {
+      "time": "2025-01-16 12:00:00",
+      "median_load_mw": 268.72,
+      "volatility_mw": 6.836680481052198,
+      "range_mw": 15.450000000000015,
+      "reason": "Forecast shifting across updates",
+      "expected_load_mw": 268.72,
+      "expected_load_display": "268.7 MW"
+    },
+    {
+      "time": "2025-01-16 11:00:00",
+      "median_load_mw": 242.54,
+      "volatility_mw": 6.603960091406426,
+      "range_mw": 15.519999999999982,
+      "reason": "Forecast shifting across updates",
+      "expected_load_mw": 242.54,
+      "expected_load_display": "242.5 MW"
+    },
+    {
+      "time": "2025-01-16 10:00:00",
+      "median_load_mw": 224.0,
+      "volatility_mw": 5.627020131077875,
+      "range_mw": 12.660000000000023,
+      "reason": "Forecast shifting across updates",
+      "expected_load_mw": 224.0,
+      "expected_load_display": "224.0 MW"
+    },
+    {
+      "time": "2025-01-16 14:00:00",
+      "median_load_mw": 273.54,
+      "volatility_mw": 5.298735698258607,
+      "range_mw": 11.610000000000014,
+      "reason": "Forecast shifting across updates",
+      "expected_load_mw": 273.54,
+      "expected_load_display": "273.5 MW"
+    },
+    {
+      "time": "2025-01-16 09:00:00",
+      "median_load_mw": 213.15,
+      "volatility_mw": 4.772674535543168,
+      "range_mw": 10.599999999999994,
+      "reason": "Forecast shifting across updates",
+      "expected_load_mw": 213.15,
+      "expected_load_display": "213.2 MW"
+    }
+  ],
+  "display": {
+    "risk_level_display": "LOW",
+    "stability_level_display": "HIGHLY_UNSTABLE",
+    "peak_timing_display": "STRONG",
+    "peak_value_display": "283.1 MW",
+    "capacity_display": "329.0 MW",
+    "max_exceedance_display": "0.0 MW",
+    "disagreement_display": "4.9 MW",
+    "peak_agreement_display": "STRONG",
+    "weather_revision_explains_display": "50%",
+    "top_driver_corr_display": "-0.69"
+  },
+  "recommended_actions": [
+    {
+      "id": "ACT-002",
+      "title": "Monitor Unstable Hours",
+      "priority": "P1",
+      "recommended_next_step": "Focus operator review on top unstable hours and rerun checks at next init.",
+      "rationale": "avg_revision_volatility=3.760467447643769 (above >= 2.0)"
+    },
+    {
+      "id": "ACT-003",
+      "title": "Wait for Next Update",
+      "priority": "P1",
+      "recommended_next_step": "Defer irreversible actions until next forecast cycle if operationally possible.",
+      "rationale": "VOI_MAE_improvement=0-24h better than 48-72h (improves_with_fresh_forecast >= 2.0 MW)"
+    }
+  ],
+  "ramp_risk": {},
+  "energy_at_risk_mwh": 0.0,
+  "backtest_quality": {},
+  "limits": {
+    "real_time_cut_note": "No actual load beyond X 00:00 used in evaluation metrics."
+  }
+}

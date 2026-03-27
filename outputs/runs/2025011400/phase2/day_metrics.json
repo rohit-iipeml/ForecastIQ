@@ -1,0 +1,12 @@
+{
+  "n_init_runs": 3,
+  "avg_revision_volatility": 6.179650075059633,
+  "max_range": 27.00999999999999,
+  "max_range_timestamp": "2025-01-14T13:00:00",
+  "disagreement_index_day": 6.4824999999999875,
+  "peak_confidence": 0.6666666666666666,
+  "peak_time_spread_hours": 12,
+  "day_exceedance_hours_consensus": 0,
+  "day_exceedance_hours_majority": 0,
+  "capacity_mw": 329.0
+}

@@ -1,0 +1,391 @@
+{
+  "run_id": "2025010200",
+  "cached": true,
+  "init_time": "2025-01-02T00:00:00",
+  "horizon_hours": 90,
+  "forecast": [
+    {
+      "timestamp": "2025-01-02T00:00:00",
+      "predicted_load": 206.97
+    },
+    {
+      "timestamp": "2025-01-02T01:00:00",
+      "predicted_load": 212.01
+    },
+    {
+      "timestamp": "2025-01-02T02:00:00",
+      "predicted_load": 210.54
+    },
+    {
+      "timestamp": "2025-01-02T03:00:00",
+      "predicted_load": 203.5
+    },
+    {
+      "timestamp": "2025-01-02T04:00:00",
+      "predicted_load": 192.58
+    },
+    {
+      "timestamp": "2025-01-02T05:00:00",
+      "predicted_load": 180.9
+    },
+    {
+      "timestamp": "2025-01-02T06:00:00",
+      "predicted_load": 171.05
+    },
+    {
+      "timestamp": "2025-01-02T07:00:00",
+      "predicted_load": 165.02
+    },
+    {
+      "timestamp": "2025-01-02T08:00:00",
+      "predicted_load": 163.83
+    },
+    {
+      "timestamp": "2025-01-02T09:00:00",
+      "predicted_load": 166.54
+    },
+    {
+      "timestamp": "2025-01-02T10:00:00",
+      "predicted_load": 175.08
+    },
+    {
+      "timestamp": "2025-01-02T11:00:00",
+      "predicted_load": 191.28
+    },
+    {
+      "timestamp": "2025-01-02T12:00:00",
+      "predicted_load": 217.25
+    },
+    {
+      "timestamp": "2025-01-02T13:00:00",
+      "predicted_load": 234.78
+    },
+    {
+      "timestamp": "2025-01-02T14:00:00",
+      "predicted_load": 243.82
+    },
+    {
+      "timestamp": "2025-01-02T15:00:00",
+      "predicted_load": 236.98
+    },
+    {
+      "timestamp": "2025-01-02T16:00:00",
+      "predicted_load": 224.41
+    },
+    {
+      "timestamp": "2025-01-02T17:00:00",
+      "predicted_load": 209.87
+    },
+    {
+      "timestamp": "2025-01-02T18:00:00",
+      "predicted_load": 197.8
+    },
+    {
+      "timestamp": "2025-01-02T19:00:00",
+      "predicted_load": 191.49
+    },
+    {
+      "timestamp": "2025-01-02T20:00:00",
+      "predicted_load": 187.69
+    },
+    {
+      "timestamp": "2025-01-02T21:00:00",
+      "predicted_load": 187.67
+    },
+    {
+      "timestamp": "2025-01-02T22:00:00",
+      "predicted_load": 191.63
+    },
+    {
+      "timestamp": "2025-01-02T23:00:00",
+      "predicted_load": 204.31
+    },
+    {
+      "timestamp": "2025-01-03T00:00:00",
+      "predicted_load": 221.61
+    },
+    {
+      "timestamp": "2025-01-03T01:00:00",
+      "predicted_load": 226.34
+    },
+    {
+      "timestamp": "2025-01-03T02:00:00",
+      "predicted_load": 224.88
+    },
+    {
+      "timestamp": "2025-01-03T03:00:00",
+      "predicted_load": 219.65
+    },
+    {
+      "timestamp": "2025-01-03T04:00:00",
+      "predicted_load": 211.36
+    },
+    {
+      "timestamp": "2025-01-03T05:00:00",
+      "predicted_load": 200.51
+    },
+    {
+      "timestamp": "2025-01-03T06:00:00",
+      "predicted_load": 192.83
+    },
+    {
+      "timestamp": "2025-01-03T07:00:00",
+      "predicted_load": 187.89
+    },
+    {
+      "timestamp": "2025-01-03T08:00:00",
+      "predicted_load": 188.49
+    },
+    {
+      "timestamp": "2025-01-03T09:00:00",
+      "predicted_load": 191.5
+    },
+    {
+      "timestamp": "2025-01-03T10:00:00",
+      "predicted_load": 201.99
+    },
+    {
+      "timestamp": "2025-01-03T11:00:00",
+      "predicted_load": 221.15
+    },
+    {
+      "timestamp": "2025-01-03T12:00:00",
+      "predicted_load": 249.45
+    },
+    {
+      "timestamp": "2025-01-03T13:00:00",
+      "predicted_load": 271.24
+    },
+    {
+      "timestamp": "2025-01-03T14:00:00",
+      "predicted_load": 271.98
+    },
+    {
+      "timestamp": "2025-01-03T15:00:00",
+      "predicted_load": 255.64
+    },
+    {
+      "timestamp": "2025-01-03T16:00:00",
+      "predicted_load": 235.19
+    },
+    {
+      "timestamp": "2025-01-03T17:00:00",
+      "predicted_load": 218.97
+    },
+    {
+      "timestamp": "2025-01-03T18:00:00",
+      "predicted_load": 206.32
+    },
+    {
+      "timestamp": "2025-01-03T19:00:00",
+      "predicted_load": 196.11
+    },
+    {
+      "timestamp": "2025-01-03T20:00:00",
+      "predicted_load": 191.05
+    },
+    {
+      "timestamp": "2025-01-03T21:00:00",
+      "predicted_load": 190.12
+    },
+    {
+      "timestamp": "2025-01-03T22:00:00",
+      "predicted_load": 192.66
+    },
+    {
+      "timestamp": "2025-01-03T23:00:00",
+      "predicted_load": 203.88
+    },
+    {
+      "timestamp": "2025-01-04T00:00:00",
+      "predicted_load": 219.42
+    },
+    {
+      "timestamp": "2025-01-04T01:00:00",
+      "predicted_load": 221.92
+    },
+    {
+      "timestamp": "2025-01-04T02:00:00",
+      "predicted_load": 221.0
+    },
+    {
+      "timestamp": "2025-01-04T03:00:00",
+      "predicted_load": 213.29
+    },
+    {
+      "timestamp": "2025-01-04T04:00:00",
+      "predicted_load": 202.53
+    },
+    {
+      "timestamp": "2025-01-04T05:00:00",
+      "predicted_load": 193.51
+    },
+    {
+      "timestamp": "2025-01-04T06:00:00",
+      "predicted_load": 185.61
+    },
+    {
+      "timestamp": "2025-01-04T07:00:00",
+      "predicted_load": 179.08
+    },
+    {
+      "timestamp": "2025-01-04T08:00:00",
+      "predicted_load": 177.46
+    },
+    {
+      "timestamp": "2025-01-04T09:00:00",
+      "predicted_load": 178.37
+    },
+    {
+      "timestamp": "2025-01-04T10:00:00",
+      "predicted_load": 182.58
+    },
+    {
+      "timestamp": "2025-01-04T11:00:00",
+      "predicted_load": 194.57
+    },
+    {
+      "timestamp": "2025-01-04T12:00:00",
+      "predicted_load": 209.15
+    },
+    {
+      "timestamp": "2025-01-04T13:00:00",
+      "predicted_load": 225.69
+    },
+    {
+      "timestamp": "2025-01-04T14:00:00",
+      "predicted_load": 237.24
+    },
+    {
+      "timestamp": "2025-01-04T15:00:00",
+      "predicted_load": 237.14
+    },
+    {
+      "timestamp": "2025-01-04T16:00:00",
+      "predicted_load": 229.63
+    },
+    {
+      "timestamp": "2025-01-04T17:00:00",
+      "predicted_load": 218.0
+    },
+    {
+      "timestamp": "2025-01-04T18:00:00",
+      "predicted_load": 206.0
+    },
+    {
+      "timestamp": "2025-01-04T19:00:00",
+      "predicted_load": 196.25
+    },
+    {
+      "timestamp": "2025-01-04T20:00:00",
+      "predicted_load": 191.51
+    },
+    {
+      "timestamp": "2025-01-04T21:00:00",
+      "predicted_load": 191.74
+    },
+    {
+      "timestamp": "2025-01-04T22:00:00",
+      "predicted_load": 196.15
+    },
+    {
+      "timestamp": "2025-01-04T23:00:00",
+      "predicted_load": 208.36
+    },
+    {
+      "timestamp": "2025-01-05T00:00:00",
+      "predicted_load": 225.03
+    },
+    {
+      "timestamp": "2025-01-05T01:00:00",
+      "predicted_load": 232.16
+    },
+    {
+      "timestamp": "2025-01-05T02:00:00",
+      "predicted_load": 232.5
+    },
+    {
+      "timestamp": "2025-01-05T03:00:00",
+      "predicted_load": 227.37
+    },
+    {
+      "timestamp": "2025-01-05T04:00:00",
+      "predicted_load": 219.95
+    },
+    {
+      "timestamp": "2025-01-05T05:00:00",
+      "predicted_load": 214.44
+    },
+    {
+      "timestamp": "2025-01-05T06:00:00",
+      "predicted_load": 207.54
+    },
+    {
+      "timestamp": "2025-01-05T07:00:00",
+      "predicted_load": 203.73
+    },
+    {
+      "timestamp": "2025-01-05T08:00:00",
+      "predicted_load": 205.65
+    },
+    {
+      "timestamp": "2025-01-05T09:00:00",
+      "predicted_load": 213.48
+    },
+    {
+      "timestamp": "2025-01-05T10:00:00",
+      "predicted_load": 222.23
+    },
+    {
+      "timestamp": "2025-01-05T11:00:00",
+      "predicted_load": 236.58
+    },
+    {
+      "timestamp": "2025-01-05T12:00:00",
+      "predicted_load": 253.26
+    },
+    {
+      "timestamp": "2025-01-05T13:00:00",
+      "predicted_load": 266.25
+    },
+    {
+      "timestamp": "2025-01-05T14:00:00",
+      "predicted_load": 266.24
+    },
+    {
+      "timestamp": "2025-01-05T15:00:00",
+      "predicted_load": 250.88
+    },
+    {
+      "timestamp": "2025-01-05T16:00:00",
+      "predicted_load": 232.89
+    },
+    {
+      "timestamp": "2025-01-05T17:00:00",
+      "predicted_load": 218.31
+    },
+    {
+      "timestamp": "2025-01-05T18:00:00",
+      "predicted_load": 206.29
+    }
+  ],
+  "metrics": {
+    "avg_predicted_load_mw": 210.86582417582417,
+    "max_predicted_load_mw": 271.98,
+    "max_predicted_load_ts": "2025-01-03T14:00:00",
+    "min_predicted_load_mw": 163.83,
+    "min_predicted_load_ts": "2025-01-02T08:00:00",
+    "total_energy_proxy_mwh": 19188.79,
+    "capacity_mw": 329.0,
+    "hours_above_capacity": 0,
+    "max_exceedance_mw": 0.0
+  },
+  "files": {
+    "forecast_csv": "/Users/rohitkumar/Desktop/ForecastIQ/outputs/runs/2025010200/forecast.csv",
+    "forecast_source_csv": "/Users/rohitkumar/Desktop/ForecastIQ/outputs/forecast_2025010200.csv",
+    "metrics_json": "/Users/rohitkumar/Desktop/ForecastIQ/outputs/runs/2025010200/metrics.json",
+    "forecast_json": "/Users/rohitkumar/Desktop/ForecastIQ/outputs/runs/2025010200/forecast.json",
+    "weather_window_csv": "/Users/rohitkumar/Desktop/ForecastIQ/outputs/runs/2025010200/weather_window.csv",
+    "backtest_last_available_csv": null
+  }
+}

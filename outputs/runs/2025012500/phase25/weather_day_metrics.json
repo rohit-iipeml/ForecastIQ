@@ -1,0 +1,29 @@
+{
+  "variables": {
+    "T2m": {
+      "n_init_runs": 3,
+      "variable_disagreement_index_iqr": 0.3110148111979356,
+      "variable_disagreement_index_range": 0.6220296223958144,
+      "avg_std": 0.27547812620265455,
+      "max_range": 1.4508463541666856,
+      "max_range_timestamp": "2025-01-25T00:00:00"
+    },
+    "Td2m": {
+      "n_init_runs": 3,
+      "variable_disagreement_index_iqr": 0.6175537109375,
+      "variable_disagreement_index_range": 1.235107421875,
+      "avg_std": 0.6270876295850848,
+      "max_range": 2.256591796875,
+      "max_range_timestamp": "2025-01-25T18:00:00"
+    },
+    "RH2m": {
+      "n_init_runs": 3,
+      "variable_disagreement_index_iqr": 0.8260667469803167,
+      "variable_disagreement_index_range": 1.6521334939606405,
+      "avg_std": 0.7007521148331984,
+      "max_range": 2.3497906649801337,
+      "max_range_timestamp": "2025-01-25T00:00:00"
+    }
+  },
+  "n_variables": 3
+}

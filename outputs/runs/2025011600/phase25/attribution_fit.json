@@ -1,0 +1,22 @@
+{
+  "model": "linear_regression",
+  "vars_used": [
+    "delta_T2m",
+    "delta_Td2m",
+    "delta_RH2m"
+  ],
+  "intercept": -3.2460095429261724,
+  "coefficients": {
+    "delta_T2m": -9.964060210290782,
+    "delta_Td2m": 8.744003137543698,
+    "delta_RH2m": -6.9569134287340315
+  },
+  "standardized_coefficients": {
+    "delta_T2m": -3.1444600489669634,
+    "delta_Td2m": 4.630898795218256,
+    "delta_RH2m": -4.043933139285181
+  },
+  "r2": 0.5015677982956107,
+  "n_samples": 19,
+  "note": "Revision attribution / explained variance only (not causality)."
+}

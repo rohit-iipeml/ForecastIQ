@@ -1,0 +1,27 @@
+{
+  "target_date": "2025-01-17",
+  "init_hour": "00",
+  "target_run_id": "2025011700",
+  "day_metrics": {
+    "n_init_runs": 3,
+    "avg_revision_volatility": 5.326852220895901,
+    "max_range": 24.850000000000023,
+    "max_range_timestamp": "2025-01-17T13:00:00",
+    "disagreement_index_day": 6.427499999999981,
+    "peak_confidence": 1.0,
+    "peak_time_spread_hours": 0,
+    "day_exceedance_hours_consensus": 0,
+    "day_exceedance_hours_majority": 0,
+    "capacity_mw": 329.0
+  },
+  "files": {
+    "forecast_matrix_csv": "outputs/runs/2025011700/phase2/forecast_matrix.csv",
+    "per_hour_metrics_csv": "outputs/runs/2025011700/phase2/per_hour_metrics.csv",
+    "day_metrics_json": "outputs/runs/2025011700/phase2/day_metrics.json",
+    "peak_by_init_csv": "outputs/runs/2025011700/phase2/peak_by_init.csv",
+    "consensus_series_csv": "outputs/runs/2025011700/phase2/consensus_series.csv",
+    "exceedance_proxy_csv": "outputs/runs/2025011700/phase2/exceedance_proxy.csv",
+    "voi_csv": "outputs/runs/2025011700/phase2/voi.csv",
+    "voi_json": "outputs/runs/2025011700/phase2/voi.json"
+  }
+}

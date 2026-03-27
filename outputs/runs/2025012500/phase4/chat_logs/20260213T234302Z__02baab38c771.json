@@ -1,0 +1,59 @@
+{
+  "run_id": "2025012500",
+  "question": "Which hours are most risky tomorrow and why?",
+  "plan": [
+    {
+      "tool": "tool_top_risk_hours",
+      "args": {}
+    }
+  ],
+  "tool_results": [
+    {
+      "tool_name": "tool_top_risk_hours",
+      "created_paths": {
+        "top_risk_hours_csv": "outputs/runs/2025012500/phase4/tools/top_risk_hours.csv",
+        "summary_json": "outputs/runs/2025012500/phase4/tools/top_risk_hours_summary.json"
+      },
+      "summary": {
+        "capacity_rows": 6,
+        "stability_rows": 6,
+        "total_rows": 12
+      },
+      "errors": []
+    }
+  ],
+  "execution_errors": [],
+  "final_markdown": "Top capacity watch hours: ['2025-01-25 13:00:00', '2025-01-25 14:00:00', '2025-01-25 12:00:00']. Top stability watch hours: ['2025-01-25 23:00:00', '2025-01-25 00:00:00', '2025-01-25 01:00:00'].\n\n\nSources\n- outputs/runs/2025012500/phase4/facts_pack.json (fields: risk_level, forecast_stability_level, peak_timing_agreement, peak, capacity, stability, weather, capacity_watchlist_hours, stability_watchlist_hours)\n- outputs/runs/2025012500/phase4/tools/top_risk_hours.csv (fields: kind, timestamp, expected_load_mw, volatility_mw, range_mw)\n- outputs/runs/2025012500/phase4/tools/top_risk_hours_summary.json (fields: )\n",
+  "sources": [
+    {
+      "path": "outputs/runs/2025012500/phase4/facts_pack.json",
+      "fields": [
+        "risk_level",
+        "forecast_stability_level",
+        "peak_timing_agreement",
+        "peak",
+        "capacity",
+        "stability",
+        "weather",
+        "capacity_watchlist_hours",
+        "stability_watchlist_hours"
+      ]
+    },
+    {
+      "path": "outputs/runs/2025012500/phase4/tools/top_risk_hours.csv",
+      "fields": [
+        "kind",
+        "timestamp",
+        "expected_load_mw",
+        "volatility_mw",
+        "range_mw"
+      ]
+    },
+    {
+      "path": "outputs/runs/2025012500/phase4/tools/top_risk_hours_summary.json",
+      "fields": []
+    }
+  ],
+  "status": "ok",
+  "created_at": "2026-02-13T23:43:02.521396+00:00"
+}

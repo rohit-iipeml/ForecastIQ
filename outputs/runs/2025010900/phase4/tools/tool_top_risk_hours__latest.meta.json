@@ -1,0 +1,18 @@
+{
+  "tool_name": "tool_top_risk_hours",
+  "run_id": "2025010900",
+  "args": {},
+  "args_hash": "44136fa355b3678a",
+  "created_at": "2026-02-13T23:42:53.578213+00:00",
+  "created_paths": {
+    "top_risk_hours_csv": "outputs/runs/2025010900/phase4/tools/top_risk_hours.csv",
+    "summary_json": "outputs/runs/2025010900/phase4/tools/top_risk_hours_summary.json"
+  },
+  "summary": {
+    "capacity_rows": 6,
+    "stability_rows": 6,
+    "total_rows": 12
+  },
+  "preview_markdown": "| kind | timestamp | expected_load_mw | exceedance_mw | volatility_mw | range_mw |\n|---|---|---|---|---|---|\n| capacity | 2025-01-09 11:00:00 | 287.21 | 0.0 | nan | nan |\n| capacity | 2025-01-09 12:00:00 | 314.98 | 0.0 | nan | nan |\n| capacity | 2025-01-09 13:00:00 | 336.49 | 7.490000000000009 | nan | nan |\n| capacity | 2025-01-09 14:00:00 | 341.63 | 12.629999999999995 | nan | nan |\n| capacity | 2025-01-09 15:00:00 | 326.55 | 0.0 | nan | nan |\n| capacity | 2025-01-09 16:00:00 | 300.86 | 0.0 | nan | nan |\n| stability | 2025-01-09 15:00:00 | 326.55 | nan | 7.722516860885874 | 18.069999999999993 |\n| stability | 2025-01-09 16:00:00 | 300.86 | nan | 9.409145669093547 | 21.289999999999964 |\n| stability | 2025-01-09 17:00:00 | 278.5 | nan | 7.985337952912332 | 17.95999999999998 |\n| stability | 2025-01-09 18:00:00 | 258.6 | nan | 7.113484846871223 | 15.949999999999989 |",
+  "errors": []
+}

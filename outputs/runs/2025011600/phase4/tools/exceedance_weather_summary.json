@@ -1,0 +1,11 @@
+{
+  "row_count": 0,
+  "requested_vars": [
+    "T2m"
+  ],
+  "weather_sources": {
+    "T2m": "outputs/runs/2025011600/weather_window.csv"
+  },
+  "timestamp_source": "outputs/runs/2025011600/phase4/tools/exceedance_hours.csv",
+  "missing_var_count": 0
+}

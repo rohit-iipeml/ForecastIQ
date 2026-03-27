@@ -1,0 +1,20 @@
+{
+  "run_id": "2025012500",
+  "items": [
+    {
+      "id": "ACT-001",
+      "title": "Capacity Alert Readiness",
+      "priority": "P0",
+      "confidence": 0.9,
+      "triggered_by": [
+        {
+          "metric": "exceedance_hours_majority",
+          "value": 3,
+          "threshold": "> 0",
+          "direction": "above"
+        }
+      ],
+      "recommended_next_step": "Prepare reserve and monitor top risk hours for dispatch decisions."
+    }
+  ]
+}

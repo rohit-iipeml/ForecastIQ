@@ -1,0 +1,29 @@
+{
+  "tool_name": "tool_weather_at_times",
+  "run_id": "2025011600",
+  "args": {
+    "timestamps_source_csv": "outputs/runs/2025011600/phase4/tools/exceedance_hours.csv",
+    "vars": [
+      "T2m"
+    ]
+  },
+  "args_hash": "6291b71b7a596310",
+  "created_at": "2026-02-13T23:22:00.100070+00:00",
+  "created_paths": {
+    "exceedance_weather_csv": "outputs/runs/2025011600/phase4/tools/exceedance_weather.csv",
+    "summary_json": "outputs/runs/2025011600/phase4/tools/exceedance_weather_summary.json"
+  },
+  "summary": {
+    "row_count": 0,
+    "requested_vars": [
+      "T2m"
+    ],
+    "weather_sources": {
+      "T2m": "outputs/runs/2025011600/weather_window.csv"
+    },
+    "timestamp_source": "outputs/runs/2025011600/phase4/tools/exceedance_hours.csv",
+    "missing_var_count": 0
+  },
+  "preview_markdown": "No rows returned.",
+  "errors": []
+}

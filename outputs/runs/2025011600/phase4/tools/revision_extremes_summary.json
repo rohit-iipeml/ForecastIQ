@@ -1,0 +1,6 @@
+{
+  "max_range": 15.519999999999982,
+  "max_range_time": "2025-01-16T11:00:00",
+  "avg_revision_volatility": 3.760467447643769,
+  "source": "outputs/runs/2025011600/phase2/per_hour_metrics.csv"
+}

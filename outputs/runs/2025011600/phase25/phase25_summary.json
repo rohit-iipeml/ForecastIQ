@@ -1,0 +1,57 @@
+{
+  "target_run_id": "2025011600",
+  "files": {
+    "weather_matrix_T2m_csv": "outputs/runs/2025011600/phase25/weather_matrices/matrix_T2m.csv",
+    "weather_matrix_Td2m_csv": "outputs/runs/2025011600/phase25/weather_matrices/matrix_Td2m.csv",
+    "weather_matrix_RH2m_csv": "outputs/runs/2025011600/phase25/weather_matrices/matrix_RH2m.csv",
+    "weather_consensus_T2m_csv": "outputs/runs/2025011600/phase25/weather_consensus_T2m.csv",
+    "weather_consensus_Td2m_csv": "outputs/runs/2025011600/phase25/weather_consensus_Td2m.csv",
+    "weather_consensus_RH2m_csv": "outputs/runs/2025011600/phase25/weather_consensus_RH2m.csv",
+    "weather_per_hour_metrics_csv": "outputs/runs/2025011600/phase25/weather_per_hour_metrics.csv",
+    "weather_day_metrics_json": "outputs/runs/2025011600/phase25/weather_day_metrics.json",
+    "revision_pairs_csv": "outputs/runs/2025011600/phase25/revision_pairs.csv",
+    "attribution_fit_json": "outputs/runs/2025011600/phase25/attribution_fit.json",
+    "correlation_table_csv": "outputs/runs/2025011600/phase25/correlation_table.csv",
+    "joint_ops_risk_csv": "outputs/runs/2025011600/phase25/joint_ops_risk.csv"
+  },
+  "attribution_fit": {
+    "model": "linear_regression",
+    "vars_used": [
+      "delta_T2m",
+      "delta_Td2m",
+      "delta_RH2m"
+    ],
+    "intercept": -3.2460095429261724,
+    "coefficients": {
+      "delta_T2m": -9.964060210290782,
+      "delta_Td2m": 8.744003137543698,
+      "delta_RH2m": -6.9569134287340315
+    },
+    "standardized_coefficients": {
+      "delta_T2m": -3.1444600489669634,
+      "delta_Td2m": 4.630898795218256,
+      "delta_RH2m": -4.043933139285181
+    },
+    "r2": 0.5015677982956107,
+    "n_samples": 19,
+    "note": "Revision attribution / explained variance only (not causality)."
+  },
+  "phase2_day_metrics": {
+    "n_init_runs": 3,
+    "avg_revision_volatility": 3.760467447643769,
+    "max_range": 15.519999999999982,
+    "max_range_timestamp": "2025-01-16T11:00:00",
+    "disagreement_index_day": 4.944999999999993,
+    "peak_confidence": 1.0,
+    "peak_time_spread_hours": 0,
+    "day_exceedance_hours_consensus": 0,
+    "day_exceedance_hours_majority": 0,
+    "capacity_mw": 329.0
+  },
+  "overlap_run_ids": [
+    "2025011300",
+    "2025011400",
+    "2025011500"
+  ],
+  "realtime_cut_rule": "No actual load used beyond target day 00:00."
+}

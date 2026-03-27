@@ -1,0 +1,50 @@
+{
+  "run_id": "2025011700",
+  "items": [
+    {
+      "id": "ACT-002",
+      "title": "Monitor Unstable Hours",
+      "priority": "P1",
+      "confidence": 0.8,
+      "triggered_by": [
+        {
+          "metric": "avg_revision_volatility",
+          "value": 5.326852220895901,
+          "threshold": ">= 2.0",
+          "direction": "above"
+        }
+      ],
+      "recommended_next_step": "Focus operator review on top unstable hours and rerun checks at next init."
+    },
+    {
+      "id": "ACT-003",
+      "title": "Wait for Next Update",
+      "priority": "P1",
+      "confidence": 0.75,
+      "triggered_by": [
+        {
+          "metric": "VOI_MAE_improvement",
+          "value": "0-24h better than 48-72h",
+          "threshold": ">= 2.0 MW",
+          "direction": "improves_with_fresh_forecast"
+        }
+      ],
+      "recommended_next_step": "Defer irreversible actions until next forecast cycle if operationally possible."
+    },
+    {
+      "id": "ACT-005",
+      "title": "Data Quality Review",
+      "priority": "P2",
+      "confidence": 0.6,
+      "triggered_by": [
+        {
+          "metric": "metadata_warnings_count",
+          "value": 5,
+          "threshold": "> 0",
+          "direction": "above"
+        }
+      ],
+      "recommended_next_step": "Review missing/partial artifacts before final operational sign-off."
+    }
+  ]
+}

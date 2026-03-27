@@ -1,0 +1,245 @@
+{
+  "run_id": "2025012200",
+  "init_time": "2025-01-22T00:00:00",
+  "horizon_hours": 90,
+  "capacity_definition": "p90_of_history_before_init_time",
+  "phase1": {
+    "peak": {
+      "time": "2025-01-22T14:00:00",
+      "value_mw": 356.88
+    },
+    "avg_load_mw": 288.7575824175824,
+    "max_load_mw": 356.88,
+    "max_load_time": "2025-01-22T14:00:00",
+    "min_load_mw": 228.54,
+    "min_load_time": "2025-01-24T21:00:00",
+    "capacity_mw": 329.0,
+    "hours_above_capacity": 14,
+    "max_exceedance_mw": 27.879999999999995,
+    "top_load_hours": [
+      {
+        "time": "2025-01-22T14:00:00",
+        "predicted_load_mw": 356.88
+      },
+      {
+        "time": "2025-01-22T13:00:00",
+        "predicted_load_mw": 355.9
+      },
+      {
+        "time": "2025-01-24T14:00:00",
+        "predicted_load_mw": 349.96
+      },
+      {
+        "time": "2025-01-25T13:00:00",
+        "predicted_load_mw": 344.72
+      },
+      {
+        "time": "2025-01-23T13:00:00",
+        "predicted_load_mw": 344.08
+      },
+      {
+        "time": "2025-01-25T14:00:00",
+        "predicted_load_mw": 343.81
+      },
+      {
+        "time": "2025-01-24T13:00:00",
+        "predicted_load_mw": 341.2
+      },
+      {
+        "time": "2025-01-22T12:00:00",
+        "predicted_load_mw": 339.67
+      },
+      {
+        "time": "2025-01-22T15:00:00",
+        "predicted_load_mw": 339.61
+      },
+      {
+        "time": "2025-01-24T15:00:00",
+        "predicted_load_mw": 339.04
+      }
+    ]
+  },
+  "phase2": {
+    "disagreement_index": 4.10499999999999,
+    "peak_confidence": 1.0,
+    "peak_time_spread_hours": 0,
+    "avg_revision_volatility": 4.235302486395783,
+    "max_range_mw": 25.69999999999999,
+    "max_range_time": "2025-01-22T02:00:00",
+    "exceedance_hours_consensus": 4,
+    "exceedance_hours_majority": 4,
+    "top_unstable_hours": [
+      {
+        "time": "2025-01-22 02:00:00",
+        "range_mw": 25.69999999999999,
+        "iqr_mw": 12.850000000000025,
+        "std_mw": 10.759709826735827
+      },
+      {
+        "time": "2025-01-22 03:00:00",
+        "range_mw": 23.370000000000005,
+        "iqr_mw": 11.685000000000002,
+        "std_mw": 9.611265380907044
+      },
+      {
+        "time": "2025-01-22 01:00:00",
+        "range_mw": 20.55000000000001,
+        "iqr_mw": 10.274999999999975,
+        "std_mw": 8.615114624890378
+      },
+      {
+        "time": "2025-01-22 04:00:00",
+        "range_mw": 18.410000000000025,
+        "iqr_mw": 9.20500000000004,
+        "std_mw": 7.516667405764941
+      },
+      {
+        "time": "2025-01-22 05:00:00",
+        "range_mw": 15.970000000000027,
+        "iqr_mw": 7.985000000000014,
+        "std_mw": 6.520134627103623
+      },
+      {
+        "time": "2025-01-22 00:00:00",
+        "range_mw": 15.639999999999986,
+        "iqr_mw": 7.819999999999993,
+        "std_mw": 7.090350249928889
+      },
+      {
+        "time": "2025-01-22 06:00:00",
+        "range_mw": 14.22999999999996,
+        "iqr_mw": 7.115000000000009,
+        "std_mw": 5.836168834660841
+      },
+      {
+        "time": "2025-01-22 13:00:00",
+        "range_mw": 10.300000000000011,
+        "iqr_mw": 5.150000000000034,
+        "std_mw": 4.410086922801719
+      },
+      {
+        "time": "2025-01-22 22:00:00",
+        "range_mw": 9.900000000000006,
+        "iqr_mw": 4.949999999999989,
+        "std_mw": 4.950000000000003
+      },
+      {
+        "time": "2025-01-22 23:00:00",
+        "range_mw": 9.560000000000002,
+        "iqr_mw": 4.78000000000003,
+        "std_mw": 4.780000000000001
+      }
+    ],
+    "top_risky_hours": [
+      {
+        "time": "2025-01-22 14:00:00",
+        "median_load_mw": 353.65,
+        "exceed_prob_proxy": 1.0
+      },
+      {
+        "time": "2025-01-22 13:00:00",
+        "median_load_mw": 352.09,
+        "exceed_prob_proxy": 1.0
+      },
+      {
+        "time": "2025-01-22 15:00:00",
+        "median_load_mw": 343.22,
+        "exceed_prob_proxy": 1.0
+      },
+      {
+        "time": "2025-01-22 12:00:00",
+        "median_load_mw": 336.46,
+        "exceed_prob_proxy": 1.0
+      },
+      {
+        "time": "2025-01-22 16:00:00",
+        "median_load_mw": 321.41,
+        "exceed_prob_proxy": 0.0
+      },
+      {
+        "time": "2025-01-22 11:00:00",
+        "median_load_mw": 309.17,
+        "exceed_prob_proxy": 0.0
+      },
+      {
+        "time": "2025-01-22 17:00:00",
+        "median_load_mw": 297.09,
+        "exceed_prob_proxy": 0.0
+      },
+      {
+        "time": "2025-01-22 10:00:00",
+        "median_load_mw": 286.77,
+        "exceed_prob_proxy": 0.0
+      },
+      {
+        "time": "2025-01-22 02:00:00",
+        "median_load_mw": 286.49,
+        "exceed_prob_proxy": 0.0
+      },
+      {
+        "time": "2025-01-22 03:00:00",
+        "median_load_mw": 286.21,
+        "exceed_prob_proxy": 0.0
+      }
+    ],
+    "voi_summary": {
+      "bins": [
+        {
+          "age_bin": "0-24",
+          "mae": 13.763055555555557,
+          "bias": -9.390277777777776
+        },
+        {
+          "age_bin": "24-48",
+          "mae": 17.285625,
+          "bias": -12.669791666666669
+        },
+        {
+          "age_bin": "48-72",
+          "mae": 30.22333333333333,
+          "bias": -23.155833333333337
+        },
+        {
+          "age_bin": "72-90",
+          "mae": null,
+          "bias": null
+        }
+      ],
+      "note": "actuals used only for timestamps < target_day 00:00"
+    }
+  },
+  "phase25": {
+    "weather_disagreement": {},
+    "attribution": {
+      "r2": null,
+      "n_samples": null,
+      "r2_reliable": null,
+      "r2_note": null,
+      "vars_used": [],
+      "top_driver_var": null,
+      "top_driver_corr": null
+    },
+    "high_ops_risk_hours": []
+  },
+  "metadata": {
+    "generated_at": "2026-02-27T21:50:49.545577+00:00",
+    "source_files": {
+      "forecast_json": "outputs/runs/2025012200/forecast.json",
+      "metrics_json": "outputs/runs/2025012200/metrics.json",
+      "phase2_summary": "outputs/runs/2025012200/phase2/phase2_summary.json",
+      "phase25_summary": "outputs/runs/2025012200/phase25/phase25_summary.json"
+    },
+    "warnings": [
+      "Missing file: outputs/runs/2025012200/phase25/phase25_summary.json",
+      "Missing file: outputs/runs/2025012200/phase25/joint_ops_risk.csv",
+      "Missing file: outputs/runs/2025012200/phase25/attribution_fit.json",
+      "Missing file: outputs/runs/2025012200/phase25/correlation_table.csv",
+      "Missing file: outputs/runs/2025012200/phase25/weather_day_metrics.json"
+    ],
+    "optional_sources": {
+      "phase2_peak_by_init_present": true,
+      "phase2_voi_present": true,
+      "phase25_joint_ops_present": false
+    }
+  }
+}
